@@ -135,14 +135,20 @@ function buildShilinMapEnvironment() {
     groundMesh.position.y = -4;
     scene.add(groundMesh);
 
-    // 2. 外雙溪主河道
+    // 2. 水系曲流（外雙溪、洲美蜆仔港水道、磺港溪軟橋水路）
     const waiShuangUV = [
         [1024, 154], [942, 178], [845, 196], [750, 165], [648, 134],
         [530, 145], [415, 168], [295, 204], [175, 250], [115, 282]
     ];
     layerGroups.rivers.add(createUVSplineRibbon(waiShuangUV, 42, 0.9, 0.15, 0x67abc7).mesh);
 
-    // 3. 幹道網絡
+    const choumeiCanalUV = [[215, 0], [235, 32], [256, 68], [268, 108], [264, 148], [256, 182], [265, 215]];
+    layerGroups.rivers.add(createUVSplineRibbon(choumeiCanalUV, 11.5, 0.92, 0.18, 0x67abc7).mesh);
+
+    const jiandeCanalUV = [[608, 0], [602, 32], [594, 62], [602, 92], [596, 118], [588, 142]];
+    layerGroups.rivers.add(createUVSplineRibbon(jiandeCanalUV, 11.5, 0.92, 0.18, 0x67abc7).mesh);
+
+    // 3. 幹道網（承德路、文昌路、基河路、北士科福國路/福美路/福善路）
     const chengdeUV = [[290, 0], [308, 98], [335, 196], [376, 330], [422, 458], [452, 534]];
     layerGroups.roads.add(createUVSplineRibbon(chengdeUV, 21.5, 1.15, 0.1, 0xfbbf24).mesh);
 
@@ -152,11 +158,19 @@ function buildShilinMapEnvironment() {
     const jiheUV = [[356, 250], [442, 224], [512, 270], [578, 342], [658, 434], [730, 534]];
     layerGroups.roads.add(createUVSplineRibbon(jiheUV, 11.5, 1.02, 0.1, 0xffffff).mesh);
 
-    // 4. 重點地標：士林高商、兒童新樂園、新光醫院、金仁寶、科教館、天文館
+    const northRoads = [
+        { uv: [[0, 22], [150, 19], [295, 16], [445, 12], [595, 8]], w: 12 },
+        { uv: [[0, 75], [85, 75], [165, 75], [242, 76]], w: 9 },
+        { uv: [[0, 148], [85, 148], [168, 148], [252, 150]], w: 9 },
+        { uv: [[54, 22], [54, 110], [54, 195], [54, 278]], w: 9 },
+        { uv: [[158, 22], [158, 95], [158, 165], [158, 232]], w: 9 }
+    ];
+    northRoads.forEach(r => layerGroups.roads.add(createUVSplineRibbon(r.uv, r.w, 0.95, 0.08, 0xffffff).mesh));
+
+    // 4. 重點地標：士林高商、兒童新樂園、新光醫院、科教館、天文館
     buildShilinHighSchoolOfCommerce();
     buildAmusementParkRichAttractions();
 
-    // 新光醫院主醫療大樓與聖賢大樓
     const skMainUV = [[702, 365], [772, 358], [778, 405], [708, 412]];
     layerGroups.buildings.add(createUVPolygonMesh(skMainUV, 44, facadeMaterials.hospital, 0, {
         title: '新光吳火獅紀念醫院 (主醫療大樓)'
@@ -164,12 +178,6 @@ function buildShilinMapEnvironment() {
     createDiverseTaiwanBuilding(742, 338, 46, 28, 34, 0.14, { shapeType: 'stepped', matKey: 'hospital', noRooftop: true, title: '新光醫院 聖賢大樓' });
     addUVLabel(740, 385, 52, '🏥 新光醫院', 'text-rose-200 bg-slate-900/90 border-rose-400/60');
 
-    // 金仁寶雙塔
-    createDiverseTaiwanBuilding(374, 76, 34, 30, 72, 0.08, { shapeType: 'chamfer', matKey: 'glassTower', title: '金仁寶總部 (主塔樓 72m)' });
-    createDiverseTaiwanBuilding(402, 106, 26, 24, 46, 0.08, { shapeType: 'stepped', matKey: 'highriseLuxury', title: '金仁寶總部 (南翼塔樓)' });
-    addUVLabel(376, 80, 78, '🏗️ 金仁寶營運總部', 'text-cyan-100 bg-slate-900/90 border-cyan-400/60');
-
-    // 科教館與天文館
     const ntsecGroup = new THREE.Group();
     ntsecGroup.position.set(toX(538), 0, toZ(355));
     const ntsecCyl = new THREE.Mesh(new THREE.CylinderGeometry(27, 29, 28, 12), facadeMaterials.institutional);
@@ -186,8 +194,49 @@ function buildShilinMapEnvironment() {
     layerGroups.buildings.add(goldDome);
     addUVLabel(538, 355, 44, '🔬 科教館 & 🪐 天文館', 'text-amber-100 bg-slate-900/90 border-amber-400/60');
 
-    // 5. 1,200+ 棟真實街廓群
-    // 【群組 1】文林路 615~681 巷
+    // 5. 【關鍵補齊】：北士科園區核心建築與廠辦街廓群
+    // (A) 金仁寶營運總部（多邊形複合裙樓 + 雙摩天塔樓）
+    const kinpoFootprintUV = [[335, 44], [424, 40], [428, 120], [385, 134], [348, 142], [336, 92]];
+    layerGroups.buildings.add(createUVPolygonMesh(kinpoFootprintUV, 14, facadeMaterials.midriseMansion, 0, {
+        title: '金仁寶營運總部大樓 (複合商業裙樓)'
+    }, { bevel: true }));
+    totalBuildingCount++;
+    createDiverseTaiwanBuilding(374, 76, 34, 30, 72, 0.08, { shapeType: 'chamfer', matKey: 'glassTower', title: '金仁寶總部 (主塔樓 72m)' });
+    createDiverseTaiwanBuilding(402, 106, 26, 24, 46, 0.08, { shapeType: 'stepped', matKey: 'highriseLuxury', title: '金仁寶總部 (南翼塔樓)' });
+    addUVLabel(376, 80, 78, '🏗️ 金仁寶營運總部', 'text-cyan-100 bg-slate-900/90 border-cyan-400/60');
+
+    // (B) NVIDIA Constellation 輝達星群園區與福國路科技園區
+    const nvidiaMainUV = [[452, 52], [576, 46], [578, 96], [515, 102], [454, 106]];
+    layerGroups.buildings.add(createUVPolygonMesh(nvidiaMainUV, 22, 0x1e293b, 0, {
+        title: 'NVIDIA Constellation (輝達北士科星群園區)'
+    }, { roughness: 0.22, metalness: 0.75, bevel: true }));
+    totalBuildingCount++;
+    populateCurvedStreetBlock([[450, 15], [515, 13], [578, 11]], [[450, 38], [515, 36], [578, 34]], {
+        cols: 5, doubleRow: false, zoneType: 'avenue_commercial', streetName: '北士科福國路科技園區'
+    });
+    addUVLabel(515, 76, 30, '🟢 NVIDIA Constellation', 'text-lime-200 bg-slate-900/90 border-lime-400/60');
+
+    // (C) 北士科洲美段：中鼎第二總部、遠雄建設、中興巴士站
+    createDiverseTaiwanBuilding(184, 108, 30, 44, 52, 0, { shapeType: 'stepped', matKey: 'glassTower', title: '中鼎集團第二總部' });
+    createDiverseTaiwanBuilding(114, 112, 30, 34, 34, 0, { shapeType: 'stepped', matKey: 'highriseLuxury', title: '遠雄建設北士科大樓' });
+    createDiverseTaiwanBuilding(74, 114, 20, 32, 11, 0, { shapeType: 'L', matKey: 'institutional', title: '中興/光華巴士洲美站' });
+    addUVLabel(184, 108, 58, '🏢 中鼎第二總部 & 洲美段', 'text-sky-200 bg-slate-900/90 border-sky-400/60');
+
+    // (D) 北士科洲美段各街廓廠辦與研發大樓群
+    populateCurvedStreetBlock([[4, 30], [46, 30]], [[4, 68], [46, 68]], { cols: 3, doubleRow: true, zoneType: 'avenue_commercial', streetName: '福美路西段' });
+    populateCurvedStreetBlock([[62, 28], [150, 28]], [[62, 68], [150, 68]], { cols: 6, doubleRow: true, zoneType: 'avenue_commercial', streetName: '福國路・福美路街廓' });
+    populateCurvedStreetBlock([[165, 28], [232, 28]], [[165, 68], [238, 68]], { cols: 5, doubleRow: true, zoneType: 'avenue_commercial', streetName: '福美路洲美公園側' });
+    populateCurvedStreetBlock([[4, 156], [46, 156]], [[4, 222], [46, 222]], { cols: 3, doubleRow: true, zoneType: 'avenue_commercial', streetName: '承平路西側廠辦區' });
+    populateCurvedStreetBlock([[62, 156], [150, 156]], [[62, 255], [150, 232]], { cols: 6, doubleRow: true, zoneType: 'luxury_highrise', streetName: '福善路科技大樓群' });
+    populateCurvedStreetBlock([[165, 156], [248, 156]], [[165, 224], [252, 198]], { cols: 5, doubleRow: true, zoneType: 'avenue_commercial', streetName: '河美街科技園區' });
+
+    // (E) 司法園區與歐洲學校
+    createDiverseTaiwanBuilding(644, 35, 38, 34, 28, 0, { shapeType: 'U', matKey: 'institutional', noRooftop: true, title: '台北高等行政法院' });
+    createDiverseTaiwanBuilding(644, 78, 36, 30, 26, 0, { shapeType: 'L', matKey: 'institutional', noRooftop: true, title: '法官學院' });
+    createDiverseTaiwanBuilding(714, 36, 42, 30, 20, -0.05, { shapeType: 'L', matKey: 'oldWarmTile', noRooftop: true, title: '臺北歐洲學校小學部' });
+    addUVLabel(646, 38, 34, '⚖️ 高等行政法院 & 歐洲學校', 'text-amber-100 bg-slate-900/85 border-amber-400/50');
+
+    // 6. 士林本島密集街廓群
     const wenlinNorthCurvedBlocks = [
         { top: [[775, 8], [818, 8], [858, 12], [888, 18]], bot: [[762, 42], [808, 34], [852, 30], [884, 34]], cols: 12, zone: 'old_walkup', name: '文林路681巷' },
         { top: [[760, 48], [805, 42], [848, 38], [886, 42]], bot: [[756, 80], [802, 66], [846, 54], [890, 58]], cols: 13, zone: 'old_walkup', name: '文林路681巷南側' },
@@ -197,7 +246,6 @@ function buildShilinMapEnvironment() {
     ];
     wenlinNorthCurvedBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
 
-    // 【群組 2】捷運紅線東側
     const mrtEastCurvedBlocks = [
         { top: [[912, 4], [968, 4], [1020, 4]], bot: [[922, 40], [972, 28], [1020, 15]], cols: 11, zone: 'mixed_alley', name: '中山北路五段829巷' },
         { top: [[926, 48], [976, 36], [1020, 22]], bot: [[938, 82], [982, 70], [1020, 56]], cols: 11, zone: 'old_walkup', name: '福華路街廓' },
@@ -206,7 +254,6 @@ function buildShilinMapEnvironment() {
     ];
     mrtEastCurvedBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
 
-    // 【群組 3】美崙公園東側至文昌路
     const wenchangWestBlocks = [
         { top: [[668, 184], [705, 178], [738, 174]], bot: [[672, 204], [708, 195], [744, 186]], cols: 9, zone: 'old_walkup', name: '文昌路179巷' },
         { top: [[674, 210], [712, 200], [748, 190]], bot: [[678, 232], [716, 222], [752, 212]], cols: 9, zone: 'old_walkup', name: '文昌路169巷' },
@@ -215,7 +262,6 @@ function buildShilinMapEnvironment() {
     ];
     wenchangWestBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
 
-    // 【群組 4】東南側核心密集街廓 (文昌路 140 巷、美崙街)
     const southeastDenseBlocks = [
         { top: [[760, 196], [825, 212], [895, 208], [945, 196]], bot: [[762, 216], [825, 232], [895, 232], [952, 226]], cols: 18, zone: 'old_walkup', name: '文林路587巷' },
         { top: [[766, 226], [815, 240], [865, 250], [915, 245], [958, 236]], bot: [[772, 258], [820, 266], [870, 265], [918, 260], [962, 252]], cols: 19, zone: 'old_walkup', name: '文昌路140巷' },
@@ -227,7 +273,6 @@ function buildShilinMapEnvironment() {
     ];
     southeastDenseBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
 
-    // 【群組 5】基河路 396 巷豪宅群
     const jiheSouthBlocks = [
         { top: [[548, 402], [585, 382], [618, 396]], bot: [[558, 434], [595, 412], [630, 390]], cols: 7, zone: 'luxury_highrise', name: '基河路396巷北' },
         { top: [[554, 444], [598, 420], [638, 398]], bot: [[574, 480], [618, 454], [662, 430]], cols: 8, zone: 'luxury_highrise', name: '基河路396巷南' },
@@ -235,7 +280,7 @@ function buildShilinMapEnvironment() {
     ];
     jiheSouthBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
 
-    // 6. 安全植栽
+    // 7. 安全陸地植栽
     buildSafeTreesExcludingWater();
 }
 
