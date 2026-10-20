@@ -1,5 +1,5 @@
 // ============================================================================
-// js/drone.js: 無人機實體、動態航跡帶、相容陣列之無形光達與 CCD 物理檢測
+// js/drone.js: 無人機實體、3D 實體粗光管航跡 (解決 1px 看不見問題)、無形光達與 CCD
 // ============================================================================
 const DRONE_RADIUS = 0.25;
 const MAX_ALTITUDE = 80.0;
@@ -11,70 +11,109 @@ const LIDAR_MAX_DIST = 45.0;
 
 let drone = null;
 const physicalObstacles = [];
-let flightTrailLine = null;
-const MAX_TRAIL_POINTS = 1000;
+
+// 3D 立體粗軌跡管與節點群組
+let flightTrailMesh = null;
+let trailBeaconGroup = null;
 const trailPoints = [];
+const MAX_TRAIL_POINTS = 600;
 
 function createDroneEntity() {
     drone = new THREE.Group();
 
-    const bodyGeo = new THREE.BoxGeometry(0.36, 0.08, 0.36);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8, roughness: 0.2 });
+    // 機身放大少許並加上高對比螢光護圈，鳥瞰更明顯
+    const bodyGeo = new THREE.BoxGeometry(0.6, 0.14, 0.6);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.7, roughness: 0.2 });
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     drone.add(bodyMesh);
 
-    const propGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.015, 8);
-    const propMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.65 });
-    const arms = [[0.22, 0.22], [-0.22, 0.22], [0.22, -0.22], [-0.22, -0.22]];
+    // 機頂高可視度發光球標記
+    const topBeacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xff007f })
+    );
+    topBeacon.position.y = 0.2;
+    drone.add(topBeacon);
+
+    // 四軸螺旋槳
+    const propGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.02, 8);
+    const propMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.75 });
+    const arms = [[0.38, 0.38], [-0.38, 0.38], [0.38, -0.38], [-0.38, -0.38]];
     drone.propellers = [];
 
     arms.forEach(([ax, az]) => {
-        const armMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.32), bodyMat);
+        const armMesh = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.52), bodyMat);
         armMesh.position.set(ax * 0.5, 0, az * 0.5);
         armMesh.rotation.y = Math.atan2(ax, az);
         drone.add(armMesh);
 
         const prop = new THREE.Mesh(propGeo, propMat);
-        prop.position.set(ax, 0.05, az);
+        prop.position.set(ax, 0.08, az);
         drone.add(prop);
         drone.propellers.push(prop);
     });
 
-    // 動態飛行軌跡線 (Trail)
-    const trailGeo = new THREE.BufferGeometry();
-    const posArr = new Float32Array(MAX_TRAIL_POINTS * 3);
-    trailGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-    const trailMat = new THREE.LineBasicMaterial({
-        color: 0x38bdf8,
-        linewidth: 2,
-        transparent: true,
-        opacity: 0.9
+    // 建立 3D 實體粗圓管軌跡 (直徑約 0.9m，高對比螢光洋紅色)
+    const emptyGeo = new THREE.BufferGeometry();
+    const trailMat = new THREE.MeshBasicMaterial({
+        color: 0xff0066,
+        side: THREE.DoubleSide
     });
-    flightTrailLine = new THREE.Line(trailGeo, trailMat);
-    flightTrailLine.frustumCulled = false;
-    layerGroups.fx.add(flightTrailLine);
+    flightTrailMesh = new THREE.Mesh(emptyGeo, trailMat);
+    flightTrailMesh.frustumCulled = false;
+    layerGroups.fx.add(flightTrailMesh);
+
+    // 軌跡定位光點群組 (每隔一段距離放一顆發光球，強化立體高度感)
+    trailBeaconGroup = new THREE.Group();
+    layerGroups.fx.add(trailBeaconGroup);
 
     scene.add(drone);
     drone.visible = false;
 }
 
+// 動態更新 3D 實體粗軌跡管
 function updateDroneTrail(newPos) {
-    trailPoints.push(newPos.clone());
-    if (trailPoints.length > MAX_TRAIL_POINTS) trailPoints.shift();
-
-    const positions = flightTrailLine.geometry.attributes.position.array;
-    for (let i = 0; i < trailPoints.length; i++) {
-        positions[i * 3] = trailPoints[i].x;
-        positions[i * 3 + 1] = trailPoints[i].y;
-        positions[i * 3 + 2] = trailPoints[i].z;
+    // 距離上一個記錄點超過 1.2m 才新增，避免點位過密影響效能
+    if (trailPoints.length > 0) {
+        const lastPt = trailPoints[trailPoints.length - 1];
+        if (lastPt.distanceTo(newPos) < 1.2) return;
     }
-    flightTrailLine.geometry.setDrawRange(0, trailPoints.length);
-    flightTrailLine.geometry.attributes.position.needsUpdate = true;
+
+    trailPoints.push(newPos.clone());
+    if (trailPoints.length > MAX_TRAIL_POINTS) {
+        trailPoints.shift();
+    }
+
+    // 至少要有 2 個點才能生成 3D 圓管
+    if (trailPoints.length >= 2) {
+        const curve = new THREE.CatmullRomCurve3(trailPoints);
+        const segments = Math.min(trailPoints.length * 2, 400);
+        // 半徑 0.45m (直徑 0.9m) 的實體粗管，任何視角與瀏覽器都清晰可見
+        const newTubeGeo = new THREE.TubeGeometry(curve, segments, 0.45, 6, false);
+        flightTrailMesh.geometry.dispose();
+        flightTrailMesh.geometry = newTubeGeo;
+    }
+
+    // 每隔 5 個點放置一顆亮黃色航跡光球，呈現飛行節奏
+    if (trailPoints.length % 5 === 0) {
+        const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.65, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+        );
+        dot.position.copy(newPos);
+        trailBeaconGroup.add(dot);
+    }
 }
 
 function resetDroneTrail() {
     trailPoints.length = 0;
-    if (flightTrailLine) flightTrailLine.geometry.setDrawRange(0, 0);
+    if (flightTrailMesh && flightTrailMesh.geometry) {
+        flightTrailMesh.geometry.dispose();
+        flightTrailMesh.geometry = new THREE.BufferGeometry();
+    }
+    if (trailBeaconGroup) {
+        trailBeaconGroup.clear();
+    }
 }
 
 function buildPhysicsBoundingBoxes() {
@@ -97,7 +136,6 @@ function buildPhysicsBoundingBoxes() {
     });
 }
 
-// 支援 Array [x, y, z] 與 THREE.Vector3 雙格式的虛擬光達測距函式
 const tempRay = new THREE.Ray();
 const tempVec = new THREE.Vector3();
 const tempOrigin = new THREE.Vector3();
@@ -124,7 +162,6 @@ function raycastSafe(origin, direction, maxDistance = LIDAR_MAX_DIST) {
 
     let closest = maxDistance;
 
-    // 地面距離檢測
     if (tempDir.y < -1e-4) {
         const dGround = -tempOrigin.y / tempDir.y;
         if (dGround > 0 && dGround < closest) closest = dGround;
@@ -169,7 +206,6 @@ function query16DirectionLiDAR(pos) {
     return dists;
 }
 
-// CCD 連續碰撞細分檢測（含 X, Z 電子圍欄與 Y 限高）
 function checkContinuousCollision(fromPos, toPos) {
     if (toPos.y < MIN_ALTITUDE || toPos.y > MAX_ALTITUDE) {
         return { hit: true, reason: toPos.y > MAX_ALTITUDE ? '超出 80m 垂直空域上限違規墜毀' : '觸地墜毀 (Y <= 0)' };
