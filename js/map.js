@@ -154,7 +154,7 @@ function buildCurvedGroundCanvasMap() {
     const ctx = canvas.getContext('2d');
     ctx.scale(2, 2);
 
-    ctx.fillStyle = '#f2efe9';
+    ctx.fillStyle = '#ddd6cc';
     ctx.fillRect(0, 0, 1024, 534);
 
     function fillPolyUV(pts, fillStyle, strokeStyle = null, lineWidth = 1) {
