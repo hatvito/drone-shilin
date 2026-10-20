@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js: 主入口、相機、單選大樓隔離機制、起訖點發光地標與動畫迴圈
+// js/main.js: 主入口、場景構建、單棟選取隔離、沖天停機坪與飛行迴圈
 // ============================================================================
 let scene, camera, renderer, controls, raycaster, mouse;
 let dirLight, ambientLight, hemiLight;
@@ -25,16 +25,19 @@ let startHelipad = null;
 let targetHelipad = null;
 let studentUpdateFunc = null;
 
+const htmlLabels = [];
+let labelsVisible = true;
+
 const DEFAULT_CODE = `function update(droneState, target, raycastSafe, lidarData, dt) {
     const p = droneState.pos;
     const v = droneState.vel;
 
-    // 1. 目標引力
+    // 1. 目標引力向量
     const toTarget = new THREE.Vector3().subVectors(target.pos, p);
     const dist = toTarget.length();
     let desiredVel = toTarget.clone().normalize().multiplyScalar(Math.min(10.0, dist * 0.8));
 
-    // 2. 16 向虛擬光達斥力場
+    // 2. 16 向虛擬光達斥力場 (數值避障，無畫面線條干擾)
     const repulsion = new THREE.Vector3(0, 0, 0);
     const SAFE_DIST = 9.0;
     for (let i = 0; i < 16; i++) {
@@ -46,7 +49,7 @@ const DEFAULT_CODE = `function update(droneState, target, raycastSafe, lidarData
         }
     }
 
-    // 3. 空域高度保護
+    // 3. 空域限高防護 (維持在 8m ~ 72m 安全層)
     let altCorrection = 0;
     if (p.y < 8.0) altCorrection = 7.0;
     if (p.y > 72.0) altCorrection = -7.0;
@@ -125,65 +128,129 @@ function initThreeScene() {
 }
 
 function buildShilinMapEnvironment() {
-    // 地板
+    // 1. 地板基座
     const groundGeo = new THREE.BoxGeometry(IMG_W, 8, IMG_H);
     const groundMat = new THREE.MeshStandardMaterial({ color: 0xdfd8ce, roughness: 0.9 });
     const groundMesh = new THREE.Mesh(groundGeo, groundMat);
     groundMesh.position.y = -4;
     scene.add(groundMesh);
 
-    // 外雙溪主河道
+    // 2. 外雙溪主河道
     const waiShuangUV = [
         [1024, 154], [942, 178], [845, 196], [750, 165], [648, 134],
         [530, 145], [415, 168], [295, 204], [175, 250], [115, 282]
     ];
-    const river = createUVSplineRibbon(waiShuangUV, 42, 0.9, 0.15, 0x67abc7);
-    layerGroups.rivers.add(river.mesh);
+    layerGroups.rivers.add(createUVSplineRibbon(waiShuangUV, 42, 0.9, 0.15, 0x67abc7).mesh);
 
-    // 承德路與文昌路幹道
+    // 3. 幹道網絡
     const chengdeUV = [[290, 0], [308, 98], [335, 196], [376, 330], [422, 458], [452, 534]];
     layerGroups.roads.add(createUVSplineRibbon(chengdeUV, 21.5, 1.15, 0.1, 0xfbbf24).mesh);
 
     const wenchangUV = [[816, 0], [765, 76], [742, 152], [768, 272], [816, 435]];
     layerGroups.roads.add(createUVSplineRibbon(wenchangUV, 13.5, 1.12, 0.1, 0xfde047).mesh);
 
-    // 核心機構與學校
+    const jiheUV = [[356, 250], [442, 224], [512, 270], [578, 342], [658, 434], [730, 534]];
+    layerGroups.roads.add(createUVSplineRibbon(jiheUV, 11.5, 1.02, 0.1, 0xffffff).mesh);
+
+    // 4. 重點地標：士林高商、兒童新樂園、新光醫院、金仁寶、科教館、天文館
     buildShilinHighSchoolOfCommerce();
     buildAmusementParkRichAttractions();
 
-    // 新光醫院主醫療大樓
+    // 新光醫院主醫療大樓與聖賢大樓
     const skMainUV = [[702, 365], [772, 358], [778, 405], [708, 412]];
     layerGroups.buildings.add(createUVPolygonMesh(skMainUV, 44, facadeMaterials.hospital, 0, {
         title: '新光吳火獅紀念醫院 (主醫療大樓)'
     }));
+    createDiverseTaiwanBuilding(742, 338, 46, 28, 34, 0.14, { shapeType: 'stepped', matKey: 'hospital', noRooftop: true, title: '新光醫院 聖賢大樓' });
     addUVLabel(740, 385, 52, '🏥 新光醫院', 'text-rose-200 bg-slate-900/90 border-rose-400/60');
 
     // 金仁寶雙塔
     createDiverseTaiwanBuilding(374, 76, 34, 30, 72, 0.08, { shapeType: 'chamfer', matKey: 'glassTower', title: '金仁寶總部 (主塔樓 72m)' });
+    createDiverseTaiwanBuilding(402, 106, 26, 24, 46, 0.08, { shapeType: 'stepped', matKey: 'highriseLuxury', title: '金仁寶總部 (南翼塔樓)' });
     addUVLabel(376, 80, 78, '🏗️ 金仁寶營運總部', 'text-cyan-100 bg-slate-900/90 border-cyan-400/60');
 
-    // 密集街廓自動鋪設
-    populateCurvedStreetBlock([[775, 8], [888, 18]], [[762, 42], [884, 34]], { cols: 14, streetName: '文林路681巷' });
-    populateCurvedStreetBlock([[760, 196], [945, 196]], [[762, 216], [952, 226]], { cols: 18, streetName: '文林路587巷' });
-    populateCurvedStreetBlock([[784, 302], [972, 275]], [[788, 328], [976, 296]], { cols: 19, streetName: '美崙街密集街廓' });
-    populateCurvedStreetBlock([[548, 402], [618, 396]], [[558, 434], [630, 390]], { cols: 9, streetName: '基河路豪宅群' });
+    // 科教館與天文館
+    const ntsecGroup = new THREE.Group();
+    ntsecGroup.position.set(toX(538), 0, toZ(355));
+    const ntsecCyl = new THREE.Mesh(new THREE.CylinderGeometry(27, 29, 28, 12), facadeMaterials.institutional);
+    ntsecCyl.position.y = 14;
+    ntsecGroup.add(ntsecCyl);
+    layerGroups.buildings.add(ntsecGroup);
+    totalBuildingCount++;
 
+    const goldDome = new THREE.Mesh(
+        new THREE.SphereGeometry(13, 24, 24),
+        new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.85, roughness: 0.2 })
+    );
+    goldDome.position.set(toX(628), 13, toZ(355));
+    layerGroups.buildings.add(goldDome);
+    addUVLabel(538, 355, 44, '🔬 科教館 & 🪐 天文館', 'text-amber-100 bg-slate-900/90 border-amber-400/60');
+
+    // 5. 1,200+ 棟真實街廓群
+    // 【群組 1】文林路 615~681 巷
+    const wenlinNorthCurvedBlocks = [
+        { top: [[775, 8], [818, 8], [858, 12], [888, 18]], bot: [[762, 42], [808, 34], [852, 30], [884, 34]], cols: 12, zone: 'old_walkup', name: '文林路681巷' },
+        { top: [[760, 48], [805, 42], [848, 38], [886, 42]], bot: [[756, 80], [802, 66], [846, 54], [890, 58]], cols: 13, zone: 'old_walkup', name: '文林路681巷南側' },
+        { top: [[762, 88], [806, 74], [850, 62], [894, 66]], bot: [[770, 108], [814, 98], [856, 92], [898, 88]], cols: 13, zone: 'old_walkup', name: '文林路661巷39弄' },
+        { top: [[818, 104], [858, 98], [902, 95]], bot: [[824, 130], [864, 125], [908, 120]], cols: 10, zone: 'old_walkup', name: '文林路643巷' },
+        { top: [[826, 136], [868, 132], [912, 128]], bot: [[830, 158], [872, 158], [918, 150]], cols: 10, zone: 'old_walkup', name: '文林路615巷' }
+    ];
+    wenlinNorthCurvedBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
+
+    // 【群組 2】捷運紅線東側
+    const mrtEastCurvedBlocks = [
+        { top: [[912, 4], [968, 4], [1020, 4]], bot: [[922, 40], [972, 28], [1020, 15]], cols: 11, zone: 'mixed_alley', name: '中山北路五段829巷' },
+        { top: [[926, 48], [976, 36], [1020, 22]], bot: [[938, 82], [982, 70], [1020, 56]], cols: 11, zone: 'old_walkup', name: '福華路街廓' },
+        { top: [[942, 90], [985, 78], [1020, 65]], bot: [[955, 132], [992, 122], [1022, 112]], cols: 10, zone: 'old_walkup', name: '福華路中段' },
+        { top: [[958, 140], [994, 130], [1022, 120]], bot: [[975, 185], [1002, 178], [1022, 170]], cols: 9, zone: 'mixed_alley', name: '士林橋東岸' }
+    ];
+    mrtEastCurvedBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
+
+    // 【群組 3】美崙公園東側至文昌路
+    const wenchangWestBlocks = [
+        { top: [[668, 184], [705, 178], [738, 174]], bot: [[672, 204], [708, 195], [744, 186]], cols: 9, zone: 'old_walkup', name: '文昌路179巷' },
+        { top: [[674, 210], [712, 200], [748, 190]], bot: [[678, 232], [716, 222], [752, 212]], cols: 9, zone: 'old_walkup', name: '文昌路169巷' },
+        { top: [[680, 238], [718, 228], [755, 218]], bot: [[685, 260], [722, 250], [758, 240]], cols: 9, zone: 'mixed_alley', name: '文昌路155巷' },
+        { top: [[686, 266], [725, 256], [762, 246]], bot: [[692, 286], [730, 276], [765, 266]], cols: 9, zone: 'old_walkup', name: '文昌路155巷南' }
+    ];
+    wenchangWestBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
+
+    // 【群組 4】東南側核心密集街廓 (文昌路 140 巷、美崙街)
+    const southeastDenseBlocks = [
+        { top: [[760, 196], [825, 212], [895, 208], [945, 196]], bot: [[762, 216], [825, 232], [895, 232], [952, 226]], cols: 18, zone: 'old_walkup', name: '文林路587巷' },
+        { top: [[766, 226], [815, 240], [865, 250], [915, 245], [958, 236]], bot: [[772, 258], [820, 266], [870, 265], [918, 260], [962, 252]], cols: 19, zone: 'old_walkup', name: '文昌路140巷' },
+        { top: [[774, 262], [822, 270], [872, 268], [920, 262], [964, 255]], bot: [[778, 294], [828, 288], [878, 282], [925, 275], [968, 268]], cols: 19, zone: 'mixed_alley', name: '美崙街86巷' },
+        { top: [[784, 302], [835, 294], [888, 286], [935, 280], [972, 275]], bot: [[788, 328], [840, 320], [892, 310], [940, 302], [976, 296]], cols: 19, zone: 'old_walkup', name: '美崙街南側' },
+        { top: [[790, 332], [842, 324], [895, 314], [942, 306], [978, 300]], bot: [[794, 354], [846, 342], [898, 332], [946, 324], [980, 318]], cols: 19, zone: 'old_walkup', name: '美崙街49巷' },
+        { top: [[802, 402], [858, 390], [918, 378], [986, 368]], bot: [[808, 428], [864, 416], [924, 404], [990, 394]], cols: 19, zone: 'mixed_alley', name: '華光街南段' },
+        { top: [[812, 434], [872, 422], [932, 410], [995, 400]], bot: [[822, 472], [882, 458], [942, 444], [1005, 430]], cols: 16, zone: 'avenue_commercial', name: '士林中正路商辦' }
+    ];
+    southeastDenseBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
+
+    // 【群組 5】基河路 396 巷豪宅群
+    const jiheSouthBlocks = [
+        { top: [[548, 402], [585, 382], [618, 396]], bot: [[558, 434], [595, 412], [630, 390]], cols: 7, zone: 'luxury_highrise', name: '基河路396巷北' },
+        { top: [[554, 444], [598, 420], [638, 398]], bot: [[574, 480], [618, 454], [662, 430]], cols: 8, zone: 'luxury_highrise', name: '基河路396巷南' },
+        { top: [[578, 488], [624, 462], [668, 438]], bot: [[602, 522], [648, 494], [692, 470]], cols: 8, zone: 'luxury_highrise', name: '基河路300巷' }
+    ];
+    jiheSouthBlocks.forEach(b => populateCurvedStreetBlock(b.top, b.bot, { cols: b.cols, doubleRow: true, zoneType: b.zone, streetName: b.name }));
+
+    // 6. 安全植栽
     buildSafeTreesExcludingWater();
 }
 
-// 3. 超明顯起訖點停機坪與垂直發光引導光柱
 function createSuperVisibleHelipad(x, y, z, colorHex, labelText) {
     const padGroup = new THREE.Group();
     padGroup.position.set(x, y + 0.05, z);
 
-    // 停機坪本體
+    // 停機坪基座 (直徑 1.6m)
     const pad = new THREE.Mesh(
         new THREE.CylinderGeometry(0.8, 0.8, 0.1, 24),
         new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 })
     );
     padGroup.add(pad);
 
-    // 發光外圈
+    // 發光外圓環
     const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.7, 0.8, 24),
         new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide })
@@ -192,7 +259,7 @@ function createSuperVisibleHelipad(x, y, z, colorHex, labelText) {
     ring.position.y = 0.06;
     padGroup.add(ring);
 
-    // 沖天光柱 (垂直通天，保證一眼辨識)
+    // 通天垂直引導光柱
     const beamGeo = new THREE.CylinderGeometry(0.35, 1.0, 50, 16, 1, true);
     const beamMat = new THREE.MeshBasicMaterial({
         color: colorHex,
@@ -204,7 +271,7 @@ function createSuperVisibleHelipad(x, y, z, colorHex, labelText) {
     beam.position.y = 25;
     padGroup.add(beam);
 
-    // 頂空懸浮標記
+    // 頂空漂浮八面體標記
     const marker = new THREE.Mesh(
         new THREE.OctahedronGeometry(1.2, 0),
         new THREE.MeshBasicMaterial({ color: colorHex })
@@ -249,7 +316,6 @@ function randomizeSeed() {
     applyMissionSeed();
 }
 
-// 2. 徹底解決「點選一棟連帶選取多棟」的獨立材質克隆機制
 function setupInteraction() {
     const dom = renderer.domElement;
     let downPos = { x: 0, y: 0 };
@@ -271,24 +337,24 @@ function setupInteraction() {
         if (hits.length > 0) {
             const hitMesh = hits[0].object;
 
-            // 復原上一棟選取大樓的獨立材質
+            // 恢復前一棟大樓的原始材質
             if (selectedMesh && selectedMeshOriginalMaterials) {
                 selectedMesh.material = selectedMeshOriginalMaterials;
             }
 
             selectedMesh = hitMesh;
 
-            // 克隆專屬材質實例，徹底避免與其他大樓共用造成全部一起發光
+            // 克隆獨立材質，避免連鎖發光問題
             selectedMeshOriginalMaterials = hitMesh.material;
             if (Array.isArray(hitMesh.material)) {
                 hitMesh.material = hitMesh.material.map(m => {
                     const cloned = m.clone();
-                    cloned.emissive.setHex(0xf59e0b);
+                    if (cloned.emissive) cloned.emissive.setHex(0xf59e0b);
                     return cloned;
                 });
             } else {
                 hitMesh.material = hitMesh.material.clone();
-                hitMesh.material.emissive.setHex(0xf59e0b);
+                if (hitMesh.material.emissive) hitMesh.material.emissive.setHex(0xf59e0b);
             }
 
             document.getElementById('info-title').textContent = hitMesh.userData.title;
@@ -367,7 +433,7 @@ function stepFlight(dt) {
         );
     } catch (e) {
         isSimulating = false;
-        alert('演算法中斷：' + e.message);
+        alert('演算法運行異常：' + e.message);
         return;
     }
 
@@ -387,7 +453,7 @@ function stepFlight(dt) {
     flightState.pos.copy(nextPos);
     drone.position.copy(flightState.pos);
 
-    // 更新飛行航跡帶
+    // 更新即時飛行軌跡帶
     updateDroneTrail(flightState.pos);
 
     const dist = flightState.pos.distanceTo(targetHelipad.pos);
@@ -425,7 +491,82 @@ function addUVLabel(u, v, y, text, styleClass) {
     container.appendChild(el);
     htmlLabels.push({ el, pos: new THREE.Vector3(toX(u), y, toZ(v)) });
 }
-const htmlLabels = [];
+
+function openAiPromptModal() {
+    document.getElementById('ai-modal').classList.remove('hidden');
+}
+function closeAiPromptModal() {
+    document.getElementById('ai-modal').classList.add('hidden');
+}
+function copyAiPrompt() {
+    const ta = document.getElementById('ai-prompt-text');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => {
+        const btn = document.getElementById('copy-prompt-btn');
+        btn.textContent = '✅ 已複製！';
+        setTimeout(() => { btn.textContent = '📋 一鍵複製提示詞'; }, 2000);
+    });
+}
+function resetDefaultCode() {
+    if (confirm('確定要還原為預設代碼嗎？')) {
+        document.getElementById('code-editor').value = DEFAULT_CODE;
+    }
+}
+
+function setLightingMode(mode) {
+    ['day', 'sunset', 'night'].forEach(m => {
+        const btn = document.getElementById('btn-' + m);
+        btn.className = m === mode
+            ? 'px-2 py-1.5 rounded-lg bg-cyan-500 text-slate-950 transition font-bold'
+            : 'px-2 py-1.5 rounded-lg hover:bg-slate-700/60 text-slate-300 transition';
+    });
+
+    if (mode === 'day') {
+        scene.background.setHex(0xdbeafe);
+        scene.fog.color.setHex(0xdbeafe);
+        ambientLight.intensity = 0.6;
+        hemiLight.intensity = 0.45;
+        dirLight.color.setHex(0xfffbeb);
+        dirLight.intensity = 0.98;
+        dirLight.position.set(240, 430, 250);
+    } else if (mode === 'sunset') {
+        scene.background.setHex(0xfdba74);
+        scene.fog.color.setHex(0xfdba74);
+        ambientLight.intensity = 0.45;
+        hemiLight.intensity = 0.35;
+        dirLight.color.setHex(0xf97316);
+        dirLight.intensity = 1.12;
+        dirLight.position.set(-420, 195, 140);
+    } else if (mode === 'night') {
+        scene.background.setHex(0x090d16);
+        scene.fog.color.setHex(0x090d16);
+        ambientLight.intensity = 0.3;
+        hemiLight.intensity = 0.24;
+        dirLight.color.setHex(0x60a5fa);
+        dirLight.intensity = 0.45;
+        dirLight.position.set(140, 380, -200);
+    }
+}
+
+function exportBlackboxJSON() {
+    if (blackboxLogs.length === 0) {
+        alert('目前尚無黑盒子飛行軌跡資料，請先啟動試飛！');
+        return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        missionSeed: document.getElementById('mission-seed-input').value,
+        flightTime: flightState.flightTime,
+        progress: flightState.progress,
+        status: flightState.status,
+        logs: blackboxLogs
+    }, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `drone_blackbox_seed_${document.getElementById('mission-seed-input').value}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+}
 
 const clock = new THREE.Clock();
 function animate() {
@@ -438,7 +579,7 @@ function animate() {
     if (ferrisWheelGroup) ferrisWheelGroup.rotation.z = elapsed * 0.35;
     if (carouselGroup) carouselGroup.rotation.y = elapsed * 0.5;
 
-    // 起訖點懸浮標記上下漂浮
+    // 起訖點懸浮八面體旋轉
     layerGroups.mission.children.forEach(pad => {
         if (pad.marker) pad.marker.rotation.y += 0.03;
     });
@@ -451,18 +592,20 @@ function animate() {
         controls.update();
     }
 
-    const hw = window.innerWidth / 2;
-    const hh = window.innerHeight / 2;
-    htmlLabels.forEach(item => {
-        const p = item.pos.clone().project(camera);
-        if (p.z > 1) {
-            item.el.style.display = 'none';
-        } else {
-            item.el.style.display = 'block';
-            item.el.style.left = `${(p.x * hw) + hw}px`;
-            item.el.style.top = `${-(p.y * hh) + hh}px`;
-        }
-    });
+    if (labelsVisible) {
+        const hw = window.innerWidth / 2;
+        const hh = window.innerHeight / 2;
+        htmlLabels.forEach(item => {
+            const p = item.pos.clone().project(camera);
+            if (p.z > 1) {
+                item.el.style.display = 'none';
+            } else {
+                item.el.style.display = 'block';
+                item.el.style.left = `${(p.x * hw) + hw}px`;
+                item.el.style.top = `${-(p.y * hh) + hh}px`;
+            }
+        });
+    }
 
     renderer.render(scene, camera);
 }
