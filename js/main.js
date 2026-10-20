@@ -222,8 +222,8 @@ window.addEventListener('load', () => {
 function initThreeScene() {
     const container = document.getElementById('canvas-container');
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xdbeafe);
-    scene.fog = new THREE.FogExp2(0xdbeafe, 0.00042);
+    scene.background = new THREE.Color(0xcbd5e1);
+    scene.fog = new THREE.FogExp2(0xcbd5e1, 0.00042);
 
     camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 2, 3400);
     camera.position.set(0, 470, 385);
@@ -233,6 +233,9 @@ function initThreeScene() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // ★ 開啟電影級色調映射並壓低曝光度，徹底解決白晝反光過曝問題
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.82;
     container.appendChild(renderer.domElement);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -248,14 +251,15 @@ function initThreeScene() {
         RIGHT: THREE.MOUSE.PAN
     };
 
-    ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
+    // ★ 調降白晝環境光與平行光強度，讓地面分區顏色與建築立體陰影顯現
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.38);
     scene.add(ambientLight);
 
-    hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0xd6d3d1, 0.45);
+    hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x94a3b8, 0.28);
     hemiLight.position.set(0, 360, 0);
     scene.add(hemiLight);
 
-    dirLight = new THREE.DirectionalLight(0xfffbeb, 0.98);
+    dirLight = new THREE.DirectionalLight(0xfffbeb, 0.68);
     dirLight.position.set(240, 430, 250);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -641,26 +645,29 @@ function setLightingMode(mode) {
     });
 
     if (mode === 'day') {
-        scene.background.setHex(0xdbeafe);
-        scene.fog.color.setHex(0xdbeafe);
-        ambientLight.intensity = 0.58;
-        hemiLight.intensity = 0.45;
+        scene.background.setHex(0xcbd5e1);
+        scene.fog.color.setHex(0xcbd5e1);
+        renderer.toneMappingExposure = 0.82;
+        ambientLight.intensity = 0.38;
+        hemiLight.intensity = 0.28;
         dirLight.color.setHex(0xfffbeb);
-        dirLight.intensity = 0.98;
+        dirLight.intensity = 0.68;
         dirLight.position.set(240, 430, 250);
     } else if (mode === 'sunset') {
         scene.background.setHex(0xfdba74);
         scene.fog.color.setHex(0xfdba74);
-        ambientLight.intensity = 0.45;
-        hemiLight.intensity = 0.35;
+        renderer.toneMappingExposure = 0.88;
+        ambientLight.intensity = 0.35;
+        hemiLight.intensity = 0.25;
         dirLight.color.setHex(0xf97316);
-        dirLight.intensity = 1.12;
+        dirLight.intensity = 0.85;
         dirLight.position.set(-420, 195, 140);
     } else if (mode === 'night') {
         scene.background.setHex(0x090d16);
         scene.fog.color.setHex(0x090d16);
-        ambientLight.intensity = 0.3;
-        hemiLight.intensity = 0.24;
+        renderer.toneMappingExposure = 0.95;
+        ambientLight.intensity = 0.25;
+        hemiLight.intensity = 0.2;
         dirLight.color.setHex(0x60a5fa);
         dirLight.intensity = 0.45;
         dirLight.position.set(140, 380, -200);
