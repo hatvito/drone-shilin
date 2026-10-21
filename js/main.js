@@ -474,10 +474,12 @@ function setupInteraction() {
         if (hits.length > 0) {
             const hitMesh = hits[0].object;
 
+            // ★ 修改處：使用 restoreIsolatedHighlight 完整復原上一棟被點擊大樓的原始材質
             if (selectedMesh && selectedMeshOriginalMaterials && selectedMesh !== startBuildingMesh && selectedMesh !== targetBuildingMesh) {
-                selectedMesh.material = selectedMeshOriginalMaterials;
+                restoreIsolatedHighlight(selectedMeshOriginalMaterials);
             }
 
+            // 若點擊的不是起點或終點大樓，才將其單獨高亮為水藍色 (0x0ea5e9)
             if (hitMesh !== startBuildingMesh && hitMesh !== targetBuildingMesh) {
                 selectedMesh = hitMesh;
                 selectedMeshOriginalMaterials = applyIsolatedHighlight(hitMesh, 0x0ea5e9);
@@ -811,10 +813,29 @@ function animate() {
         controls.update();
     }
 
+    const hw = window.innerWidth / 2;
+    const hh = window.innerHeight / 2;
+
+    // 1. 普通地標標籤（降低不透明度至 0.75，避免搶走起訖點的視覺焦點）
     if (labelsVisible && cameraViewMode === 'orbit') {
-        const hw = window.innerWidth / 2;
-        const hh = window.innerHeight / 2;
         htmlLabels.forEach(item => {
+            const p = item.pos.clone().project(camera);
+            if (p.z > 1) {
+                item.el.style.display = 'none';
+            } else {
+                item.el.style.display = 'block';
+                item.el.style.opacity = '0.75';
+                item.el.style.left = `${(p.x * hw) + hw}px`;
+                item.el.style.top = `${-(p.y * hh) + hh}px`;
+            }
+        });
+    } else {
+        htmlLabels.forEach(item => item.el.style.display = 'none');
+    }
+
+    // ★ 2. 新增：起點與終點巨型戰術標籤（永遠 100% 亮顯置頂，鳥瞰與追蹤視角皆可見）
+    if (typeof missionHtmlLabels !== 'undefined') {
+        missionHtmlLabels.forEach(item => {
             const p = item.pos.clone().project(camera);
             if (p.z > 1) {
                 item.el.style.display = 'none';
@@ -824,8 +845,6 @@ function animate() {
                 item.el.style.top = `${-(p.y * hh) + hh}px`;
             }
         });
-    } else {
-        htmlLabels.forEach(item => item.el.style.display = 'none');
     }
 
     renderer.render(scene, camera);
