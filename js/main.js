@@ -40,36 +40,40 @@ const DEFAULT_CODE = `class StudentController {
         // goal_pos: 終點停機坪座標數組 [gx, gy, gz]
         this.goal = goal_pos.slice();
 
-        // ★ 關鍵參數宣告區（學生可自由微調測試）
-        this.speed = 14.0;            // 最高巡航速度 (m/s，建議 8~18，數值越高越快但轉彎半徑大)
-        this.cruiseAltitude = 38.0;   // 安全巡航基準高度 (m，建議 28~55，高於一般 5F 老公寓，低於 80m 限高)
-        this.sensorRange = 24.0;      // 光達感測距離 (m，建議 15~45，越遠越能提早閃避摩天大樓)
-        this.repulsePower = 22.0;     // 障礙物推開強度 (建議 12~35，數值越大閃越遠，太大易震盪)
-        this.safeBrakeDist = 8.0;     // 動態安全煞車距離 (m，小於此距離時自動減速防撞)
-        this.rayCount = 16;           // 水平環景光達射線數量 (建議 16 或 24，越多盲區越小)
+        // ★ 關鍵參數宣告區（低空巷戰避障模式：限高 25.0m）
+        this.speed = 11.0;            // 最高巡航速度 (m/s，建議 6~14，巷弄轉彎多不宜過快)
+        this.cruiseAltitude = 12.5;   // 低空巷戰巡航高度 (m，建議 10~16，穿梭於 3~4 樓巷弄間，嚴禁超過 25m)
+        this.sensorRange = 22.0;      // 光達感測距離 (m，建議 15~30，提早偵測街角與大樓外牆)
+        this.repulsePower = 24.0;     // 障礙物推開強度 (建議 15~35，數值越大閃越遠)
+        this.safeBrakeDist = 7.5;     // 動態安全煞車距離 (m，小於此距離時減速轉彎)
+        this.rayCount = 16;           // 水平環景光達射線數量 (建議 16~24)
     }
 
     get_velocity(current_pos, raycast_func, dt) {
         const [x, y, z] = current_pos;
         const [gx, gy, gz] = this.goal;
 
-        // 1. 計算水平距離與目標三維引力
+        // 1. 計算水平距離與目標方向
         const dx = gx - x;
         const dz = gz - z;
         const horizDist = Math.hypot(dx, dz);
 
-        // 決定目標飛行高度：距離終點 > 25m 時保持高空安全巡航高度，接近終點時平滑對齊終點屋頂高度
-        const targetY = (horizDist > 25.0) ? Math.max(this.cruiseAltitude, gy + 6.0) : gy;
+        // ★ 低空高度控制：
+        // 剛起飛或距離終點 > 18m 時，維持在 12.5m 的低空巷弄高度穿梭；
+        // 只有在前方淨空且接近終點 (< 18m) 時，才平滑對齊終點屋頂高度 gy
+        let targetY = (horizDist > 18.0) ? this.cruiseAltitude : gy;
+        // 確保目標高度絕對不超過 23.0m (留 2m 安全緩衝避免撞擊 25m 限高天花板)
+        targetY = Math.min(23.0, Math.max(4.0, targetY));
+
         const dy = targetY - y;
         const dist3D = Math.hypot(dx, dy, dz) || 1e-5;
 
-        // 基本朝向目標速度
-        let desiredSpeed = Math.min(this.speed, dist3D * 1.2);
+        let desiredSpeed = Math.min(this.speed, dist3D * 1.1);
         let vx = (dx / dist3D) * desiredSpeed;
         let vy = (dy / dist3D) * desiredSpeed;
         let vz = (dz / dist3D) * desiredSpeed;
 
-        // 2. 環景多向虛擬光達排斥力 (APF)
+        // 2. 水平環景多向虛擬光達排斥力 + 切線繞行輔助 (避免卡在牆面正前方)
         let repX = 0, repY = 0, repZ = 0;
         let minFrontDist = this.sensorRange;
 
@@ -80,30 +84,31 @@ const DEFAULT_CODE = `class StudentController {
             const d = raycast_func(current_pos, [rdx, 0, rdz], this.sensorRange);
 
             if (d < this.sensorRange) {
-                const factor = Math.pow((this.sensorRange - d) / this.sensorRange, 2) * this.repulsePower;
-                repX -= rdx * factor;
-                repZ -= rdz * factor;
+                const ratio = (this.sensorRange - d) / this.sensorRange;
+                const factor = ratio * ratio * this.repulsePower;
+                // 正向排斥推開 + 微量側向切線滑動分量幫助繞過大樓轉角
+                repX -= (rdx - rdz * 0.35) * factor;
+                repZ -= (rdz + rdx * 0.35) * factor;
                 if (d < minFrontDist) minFrontDist = d;
             }
         }
 
-        // 3. 上下垂直防撞探測（避開裙樓屋頂與頂樓加蓋）
-        const dDown = raycast_func(current_pos, [0, -1, 0], 10.0);
-        if (dDown < 4.5 && horizDist > 3.0) {
-            repY += (4.5 - dDown) * 4.0;
+        // 3. 垂直防撞探測（若下方是矮屋頂則稍微抬升，但接近 23.5m 天花板時強烈下壓！）
+        const dDown = raycast_func(current_pos, [0, -1, 0], 6.0);
+        if (dDown < 2.5 && y < 21.5) {
+            repY += (2.5 - dDown) * 3.5;
         }
-        if (y > 72.0) repY -= 10.0; // 接近 80m 天花板限高時強制下壓
+        if (y > 22.5) {
+            repY -= (y - 22.5) * 12.0; // 嚴防觸碰 25.0m 限高違規線
+        }
 
         // 4. 動態安全煞車機制
         if (minFrontDist < this.safeBrakeDist) {
-            const brakeScale = Math.max(0.35, minFrontDist / this.safeBrakeDist);
+            const brakeScale = Math.max(0.25, minFrontDist / this.safeBrakeDist);
             vx *= brakeScale;
             vz *= brakeScale;
-            // 若四周被高樓包夾且高度允許，稍微拉升高度越過矮房
-            if (y < 65.0) repY += 4.5;
         }
 
-        // 合成最終速度向量並限制最大速度
         let outVx = vx + repX;
         let outVy = vy + repY;
         let outVz = vz + repZ;
@@ -117,27 +122,26 @@ const DEFAULT_CODE = `class StudentController {
         return [outVx, outVy, outVz];
     }
 }`;
-
 // 新版 AI 提示詞範本
 const AI_PROMPT_TEXT = `============================================================
 【第一部分：演算法策略需求（★ 學生可自行增加／修改此區塊需求）】
 ============================================================
-請根據以下構想設計「台北士林千棟都會區」避障與導航邏輯（你可以自由添加或替換為其他演算法）：
-1. 複合式導航：以朝向終點停機坪的引力為基準，並結合多向虛擬光達排斥力（人工位能場 APF）。
+請根據以下構想設計「台北士林千棟都會區・低空巷戰」避障與導航邏輯（你可以自由添加或替換為其他演算法）：
+1. 複合式導航：以朝向終點停機坪的引力為基準，並結合多向虛擬光達排斥力（人工位能場 APF）與側向切線繞行力。
 2. 動態安全煞車：當光達探測到距離大樓外牆、頂樓鐵皮加蓋或水塔小於安全門檻時，主動降低前進速度，避免高速慣性煞停不及撞牆。
-3. 3D 盲區強化：射線密度建議為 16 向以上水平環景，並額外加上「斜上方、正上方、斜下方」的垂直探測射線，避免在爬升或下降時撞上退縮華廈的裙樓或屋突。
-4. 防火巷死胡同脫困狀態機：士林美崙街與文昌路有大量狹窄防火巷與 L 型街角屋，若連續一段時間位移極小（卡在局部極小值受力平衡），請自動切換為「垂直拉升高度」或「後退並沿開闊側橫移繞行」，脫困後再恢復巡航。
-5. 立體高空巡航策略：地圖中多數台灣步登老公寓高度約 14~22m，高層華廈與摩天大樓約 30~72m。平時建議於較開闊的中高空安全巡航高度（約 32~48m）穿梭以避開低層密集巷弄；接近終點水平距離（< 25m）時，再平滑下降或爬升對齊終點大樓屋頂停機坪。
+3. 盲區強化：射線密度建議為 16 向以上水平環景（或針對前進方向錐形加密），並搭配上下垂直探測避免擦撞屋頂女兒牆或鐵皮屋。
+4. 防火巷死胡同脫困狀態機：士林美崙街與文昌路有大量狹窄防火巷與 L 型街角屋，若連續一段時間位移極小（卡在局部極小值受力平衡），請切換為後退並沿開闊側橫移繞行，脫困後再恢復巡航。
+5. 低空巡航限制（嚴禁高空作弊）：本挑戰賽嚴格限高 25.0m！絕大多數大樓與公寓（15m~72m）皆無法直接從頂部無腦飛越。平時請維持在安全低空巡航高度（約 11~14m）於街道與巷弄間水平穿梭繞障；若前方遇較矮建築且低於 22m 可適度微幅拉升，接近終點（<15m）時再平滑對齊終點屋頂停機坪。
 
 ============================================================
 【第二部分：世界環境與物理規則（固定規格，不可變更）】
 ============================================================
 1. 地圖空域範圍：台北士林／北士科真實比例街廓（寬 1024 × 深 534），中心座標範圍：東西向 X∈[-512.0, 512.0]，南北向 Z∈[-267.0, 267.0]（超出邊界視為失事墜毀）。
-2. 起點位置：隨機種子 (0000~9999) 選定之「翡翠綠」大樓屋頂停機坪（直徑 1.5m）。
-3. 終點目標：隨機種子選定之「流金黃」大樓屋頂停機坪（直徑 1.5m）。
-4. 機體大小：無人機為半徑 0.25 公尺的穿梭機（具備精準 AABB 包圍盒與 CCD 連續碰撞細分檢測，撞擊建築主體、頂樓鐵皮加蓋、水塔或墜地即判定失敗）。
-5. 空域限高：垂直高度嚴格限制為 Y∈[0.0, 80.0] 公尺（y <= 0 觸地或 y > 80.0 超高會立即違規墜毀）。
-6. 計分與完成機制：進入終點停機坪中心 1.5 公尺內即完成任務；若失事則計算「失事點至終點的 3D 直線剩餘距離」與「任務達成率 (%)」，剩餘距離越短名次越高。
+2. 起點位置：隨機種子 (0000~9999) 選定之「翡翠綠」大樓屋頂停機坪（屋頂高度 <= 20.0m）。
+3. 終點目標：隨機種子選定之「流金黃」大樓屋頂停機坪（屋頂高度 <= 20.0m）。
+4. 機體大小：無人機為半徑 0.25 公尺的穿梭機（具備精準 AABB 包圍盒與 CCD 連續碰撞細分檢測，不可撞牆或墜地）。
+5. 空域限高：最高高度嚴格限制為 25.0 公尺（y <= 0 觸地或 y > 25.0 超高會立即違規墜毀！禁止利用高空直線飛越）。
+6. 計分機制：進入終點停機坪中心 1.5 公尺內即完成任務；失事時計算「失事點至終點的 3D 直線剩餘距離」，越短名次越高。
 
 ============================================================
 【第三部分：程式碼輸出規範（★ 參數易讀性與中文註解要求）】
@@ -146,10 +150,10 @@ const AI_PROMPT_TEXT = `========================================================
 1. 【參數透明化】：所有控制避障強度、航行速度、巡航高度、安全煞車距離、光達射線數量的「關鍵常數」，請務必統一宣告在 constructor 內（例如 \`this.speed\`、\`this.sensorRange\` 等）。
 2. 【繁體中文註解】：在每個關鍵參數宣告後方，必須附上清晰的單行繁體中文註解，說明其「中文意義」、「單位」以及「調大/調小的影響（或建議數值區間）」。
    範例格式：
-   this.speed = 14.0;            // 最高巡航速度 (m/s，建議 8~18，數值越高越快但轉彎半徑大)
-   this.cruiseAltitude = 38.0;   // 預設安全巡航高度 (m，建議 28~55，高於一般 5F 老公寓屋頂，低於 80m 限高)
-   this.sensorRange = 25.0;      // 光達感測距離 (m，建議 15~45，越遠越能提早閃避摩天大樓)
-   this.repulsePower = 20.0;     // 障礙物推開強度 (數值越大閃越遠，但太大容易在窄巷劇烈震盪)
+   this.speed = 11.0;            // 最高巡航速度 (m/s，建議 6~14，數值越高越快但轉彎半徑大)
+   this.cruiseAltitude = 12.5;   // 低空巡航基準高度 (m，建議 10~16，嚴禁超過 25.0m 限高)
+   this.sensorRange = 22.0;      // 光達感測距離 (m，越遠越能提早轉向，但太遠易受無關建築干擾)
+   this.repulsePower = 24.0;     // 障礙物推開強度 (數值越大閃越遠，但太大容易在狹道劇烈震盪)
 
 ============================================================
 【第四部分：系統必要代碼介面（★ 絕對不可修改類別名與函式簽章）】
@@ -158,30 +162,28 @@ const AI_PROMPT_TEXT = `========================================================
 
 class StudentController {
     constructor(goal_pos) {
-        // goal_pos: 終點停機坪座標數組 [gx, gy, gz]
+        // goal_pos: 終點座標數組 [gx, gy, gz]
         this.goal = goal_pos.slice();
 
         // ★ 請在此處宣告各項關鍵參數，並加上清楚的繁體中文註解說明
-        this.speed = 14.0;            // 最高巡航速度 (m/s，建議 8~18)
-        this.cruiseAltitude = 38.0;   // 安全巡航基準高度 (m，建議 28~55，不可超過 80)
-        this.sensorRange = 25.0;      // 光達探測距離 (m，建議 15~45)
-        this.repulsePower = 22.0;     // 避障排斥力強度 (建議 12~35)
+        this.speed = 11.0;            // 巡航速度 (m/s)
+        this.cruiseAltitude = 12.5;   // 低空巡航基準高度 (m，限高 25.0m)
     }
 
     get_velocity(current_pos, raycast_func, dt) {
         /**
          * 參數說明：
-         * - current_pos: 當前無人機中心座標數組 [x, y, z]
+         * - current_pos: 當前無人機中心座標 [x, y, z]
          * - raycast_func(origin, direction, max_dist=45.0):
          *     虛擬光達測距函式。
-         *     origin: 測距起點數組 [x, y, z]
-         *     direction: 3D 方向向量數組 [dx, dy, dz]
-         *     max_dist: 最大感測距離（預設 45.0 公尺）
-         *     回傳值: float（至建築物/鐵皮/水塔外牆的淨空距離；無障礙則回傳 max_dist）
-         * - dt: 該影格的時間差 (秒，約 0.016 ~ 0.033)
+         *     origin: 測距起點 [x, y, z]
+         *     direction: 3D 向量 [dx, dy, dz]
+         *     max_dist: 最大感測距離（預設 45.0）
+         *     回傳值: float（至建築物外牆的淨空距離；前方無障礙則回傳 max_dist）
+         * - dt: 該影格的時間差 (約 0.016 ~ 0.033 秒)
          * 
          * 必要回傳值：
-         * - 必須回傳一個 3D 期望速度向量數組 [vx, vy, vz] (單位 m/s)
+         * - 必須回傳一個 3D 速度向量數組 [vx, vy, vz]
          */
         
         // --- 請在此處實作你的避障與導航邏輯 ---
@@ -417,12 +419,51 @@ function applyMissionSeed() {
 
     let idxA = 0, idxB = 1;
     let attempts = 0;
-    while (attempts < 200) {
+    while (attempts < 500) {
         idxA = Math.floor(missionRandom() * candidateBuildings.length);
         idxB = Math.floor(missionRandom() * candidateBuildings.length);
-        if (idxA !== idxB && candidateBuildings[idxA].center.distanceTo(candidateBuildings[idxB].center) > 220) break;
+        const candA = candidateBuildings[idxA];
+        const candB = candidateBuildings[idxB];
+
+        // ★ 嚴格過濾：起訖點屋頂必須 <= 20.0m（確保在 25.0m 限高空域內），且距離大於 220m
+        if (idxA !== idxB && candA.roofY <= 20.0 && candB.roofY <= 20.0 && candA.center.distanceTo(candB.center) > 220) {
+            break;
+        }
         attempts++;
     }
+
+    // 防呆備案：若隨機幾何組合較極端，放寬高度限制重新抽選
+    if (attempts >= 500) {
+        idxA = Math.floor(missionRandom() * candidateBuildings.length);
+        do {
+            idxB = Math.floor(missionRandom() * candidateBuildings.length);
+        } while (idxA === idxB);
+    }
+
+    layerGroups.mission.clear();
+    const bA = candidateBuildings[idxA];
+    const bB = candidateBuildings[idxB];
+
+    // 將起點大樓整棟渲染為高光翡翠綠，終點大樓整棟渲染為流金黃
+    startBuildingMesh = bA.mesh;
+    startBuildingOriginalMat = applyIsolatedHighlight(startBuildingMesh, 0x00ff88);
+
+    targetBuildingMesh = bB.mesh;
+    targetBuildingOriginalMat = applyIsolatedHighlight(targetBuildingMesh, 0xffaa00);
+
+    startHelipad = createSuperVisibleHelipad(bA.center.x, bA.roofY, bA.center.z, 0x00ff88);
+    targetHelipad = createSuperVisibleHelipad(bB.center.x, bB.roofY, bB.center.z, 0xffaa00);
+    layerGroups.mission.add(startHelipad.mesh, targetHelipad.mesh);
+
+    // 建立頂置大標籤
+    createMissionFloatingLabel(bA.center.x, bA.roofY, bA.center.z, 'START', bA.title, bA.roofY);
+    createMissionFloatingLabel(bB.center.x, bB.roofY, bB.center.z, 'GOAL', bB.title, bB.roofY);
+
+    document.getElementById('start-node-info').textContent = `${bA.title} (${Math.round(bA.roofY)}m)`;
+    document.getElementById('target-node-info').textContent = `${bB.title} (${Math.round(bB.roofY)}m)`;
+
+    resetFlightState();
+}
 
     layerGroups.mission.clear();
     const bA = candidateBuildings[idxA];
