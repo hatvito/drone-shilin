@@ -2,7 +2,7 @@
 // js/drone.js: 無人機實體、3D 實體粗光管航跡 (解決 1px 看不見問題)、無形光達與 CCD
 // ============================================================================
 const DRONE_RADIUS = 0.25;
-const MAX_ALTITUDE = 80.0;
+const MAX_ALTITUDE = 25.0;
 const MIN_ALTITUDE = 0.0;
 const MAP_HALF_W = 512.0;
 const MAP_HALF_D = 267.0;
@@ -208,7 +208,7 @@ function query16DirectionLiDAR(pos) {
 
 function checkContinuousCollision(fromPos, toPos) {
     if (toPos.y < MIN_ALTITUDE || toPos.y > MAX_ALTITUDE) {
-        return { hit: true, reason: toPos.y > MAX_ALTITUDE ? '超出 80m 垂直空域上限違規墜毀' : '觸地墜毀 (Y <= 0)' };
+        return { hit: true, reason: toPos.y > MAX_ALTITUDE ? '超出 25.0m 低空空域上限違規墜毀（禁止高空飛越！）' : '觸地墜毀 (Y <= 0)' };
     }
     if (Math.abs(toPos.x) > MAP_HALF_W || Math.abs(toPos.z) > MAP_HALF_D) {
         return { hit: true, reason: '觸碰地圖邊界電子圍欄墜毀' };
