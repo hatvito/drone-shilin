@@ -286,63 +286,120 @@ function initThreeScene() {
     });
 }
 
-function applyIsolatedHighlight(mesh, emissiveHex) {
-    if (!mesh || !mesh.material) return null;
-    const orig = mesh.material;
-    if (Array.isArray(orig)) {
-        mesh.material = orig.map(m => {
-            const c = m.clone();
-            if (c.emissive) {
-                c.emissive.setHex(emissiveHex);
-                c.emissiveIntensity = 0.55;
-            }
-            return c;
-        });
-    } else {
-        const c = orig.clone();
-        if (c.emissive) {
-            c.emissive.setHex(emissiveHex);
-            c.emissiveIntensity = 0.55;
+// 動態任務專屬 HTML 大標籤陣列
+const missionHtmlLabels = [];
+
+// 1. 將選中大樓整棟（含所有子元件）強制染成高飽和度霓虹翡翠綠 / 流金黃
+function applyIsolatedHighlight(meshOrGroup, colorHex) {
+    if (!meshOrGroup) return [];
+    const backups = [];
+    // 若傳入的是單一 Mesh，往上找整棟樓的 Group 一併染色
+    const root = meshOrGroup.parent && meshOrGroup.parent !== layerGroups.buildings ? meshOrGroup.parent : meshOrGroup;
+
+    root.traverse(child => {
+        if (child.isMesh && child.material) {
+            backups.push({ mesh: child, mat: child.material });
+            const highlightMat = new THREE.MeshStandardMaterial({
+                color: colorHex,
+                emissive: colorHex,
+                emissiveIntensity: 0.75,
+                roughness: 0.2,
+                metalness: 0.3
+            });
+            child.material = highlightMat;
         }
-        mesh.material = c;
-    }
-    return orig;
+    });
+    return backups;
 }
 
+function restoreIsolatedHighlight(backups) {
+    if (!backups) return;
+    backups.forEach(item => {
+        if (item.mesh) item.mesh.material = item.mat;
+    });
+}
+
+// 2. 建立超粗壯雙層沖天光柱 + 高空巨型旋轉光環
 function createSuperVisibleHelipad(x, y, z, colorHex) {
     const padGroup = new THREE.Group();
-    padGroup.position.set(x, y + 0.08, z);
+    padGroup.position.set(x, y + 0.1, z);
 
+    // 停機坪發光大底盤 (放大視覺外圈讓鳥瞰更明顯，物理判定仍以中心為準)
     const pad = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.75, 0.75, 0.12, 24),
-        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 })
+        new THREE.CylinderGeometry(2.2, 2.2, 0.3, 32),
+        new THREE.MeshBasicMaterial({ color: colorHex })
     );
     padGroup.add(pad);
 
-    const ring = new THREE.Mesh(
-        new THREE.RingGeometry(0.62, 0.75, 24),
-        new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide })
+    // 外圍同心擴散警戒環
+    const outerRing = new THREE.Mesh(
+        new THREE.RingGeometry(2.8, 3.8, 32),
+        new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
     );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.07;
-    padGroup.add(ring);
+    outerRing.rotation.x = -Math.PI / 2;
+    outerRing.position.y = 0.2;
+    padGroup.add(outerRing);
 
-    const beam = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.4, 1.1, 55, 16, 1, true),
-        new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.38, side: THREE.DoubleSide })
+    // 內層高亮度實心光芯 (直衝 110m 高空，超過所有摩天大樓)
+    const coreBeam = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.9, 0.9, 110, 16, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
     );
-    beam.position.y = 27.5;
-    padGroup.add(beam);
+    coreBeam.position.y = 55;
+    padGroup.add(coreBeam);
 
+    // 外層寬幅霓虹光暈柱 (直徑達 5~9m，全區鳥瞰絕對清晰)
+    const auraBeam = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.5, 4.5, 110, 20, 1, true),
+        new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false })
+    );
+    auraBeam.position.y = 55;
+    padGroup.add(auraBeam);
+
+    // 高空巨型旋轉立體晶體標記 (懸浮在屋頂上方 28m 處)
     const marker = new THREE.Mesh(
-        new THREE.OctahedronGeometry(1.5, 0),
-        new THREE.MeshBasicMaterial({ color: colorHex })
+        new THREE.OctahedronGeometry(3.8, 0),
+        new THREE.MeshBasicMaterial({ color: colorHex, wireframe: false })
     );
-    marker.position.y = 14;
+    marker.position.y = 28;
     padGroup.add(marker);
     padGroup.marker = marker;
 
     return { mesh: padGroup, pos: new THREE.Vector3(x, y + 0.5, z) };
+}
+
+// 3. 建立永遠置頂、帶呼吸燈特效的起訖點專屬 HTML 巨型浮動字卡
+function createMissionFloatingLabel(x, y, z, type, titleText, roofY) {
+    const container = document.getElementById('labels-container');
+    const el = document.createElement('div');
+    el.className = 'map-label';
+    el.style.zIndex = '50'; // 壓過地圖上所有普通地標 (z-index: 10)
+
+    const isStart = (type === 'START');
+    const badgeBg = isStart
+        ? 'bg-emerald-500 text-slate-950 border-2 border-white shadow-[0_0_25px_rgba(16,185,129,1)]'
+        : 'bg-amber-400 text-slate-950 border-2 border-white shadow-[0_0_25px_rgba(245,158,11,1)]';
+    const icon = isStart ? '🛫 起點 START' : '🏁 終點 GOAL';
+    const stemColor = isStart ? '#10b981' : '#f59e0b';
+
+    el.innerHTML = `
+        <div class="px-3 py-1 rounded-xl ${badgeBg} font-black text-xs sm:text-sm flex flex-col items-center animate-bounce">
+            <div class="tracking-wider">${icon}</div>
+            <div class="text-[10px] font-bold opacity-90 max-w-[140px] truncate">${titleText} (${Math.round(roofY)}m)</div>
+        </div>
+        <div style="width: 3px; height: 18px; margin: 0 auto; background: ${stemColor}; box-shadow: 0 0 8px ${stemColor};"></div>
+    `;
+
+    // 點擊標籤可直接把鏡頭飛過去特寫該大樓
+    el.onclick = (e) => {
+        e.stopPropagation();
+        controls.target.set(x, roofY, z);
+        camera.position.set(x, roofY + 85, z + 95);
+    };
+
+    container.appendChild(el);
+    // 標籤錨點設在屋頂上方 32m 處，完全避開地面雜訊
+    missionHtmlLabels.push({ el, pos: new THREE.Vector3(x, y + 32, z) });
 }
 
 function applyMissionSeed() {
@@ -350,8 +407,13 @@ function applyMissionSeed() {
     missionSeed = seedVal;
     if (candidateBuildings.length < 2) return;
 
-    if (startBuildingMesh && startBuildingOriginalMat) startBuildingMesh.material = startBuildingOriginalMat;
-    if (targetBuildingMesh && targetBuildingOriginalMat) targetBuildingMesh.material = targetBuildingOriginalMat;
+    // 復原舊起訖點大樓的原始材質
+    restoreIsolatedHighlight(startBuildingOriginalMat);
+    restoreIsolatedHighlight(targetBuildingOriginalMat);
+
+    // 清除舊的起訖點專屬 HTML 浮動大標籤
+    missionHtmlLabels.forEach(item => item.el.remove());
+    missionHtmlLabels.length = 0;
 
     let idxA = 0, idxB = 1;
     let attempts = 0;
@@ -366,22 +428,26 @@ function applyMissionSeed() {
     const bA = candidateBuildings[idxA];
     const bB = candidateBuildings[idxB];
 
+    // 整棟大樓強制染成高光翡翠綠與流金黃
     startBuildingMesh = bA.mesh;
-    startBuildingOriginalMat = applyIsolatedHighlight(startBuildingMesh, 0x10b981);
+    startBuildingOriginalMat = applyIsolatedHighlight(startBuildingMesh, 0x00ff88);
 
     targetBuildingMesh = bB.mesh;
-    targetBuildingOriginalMat = applyIsolatedHighlight(targetBuildingMesh, 0xf59e0b);
+    targetBuildingOriginalMat = applyIsolatedHighlight(targetBuildingMesh, 0xffaa00);
 
-    startHelipad = createSuperVisibleHelipad(bA.center.x, bA.roofY, bA.center.z, 0x10b981);
-    targetHelipad = createSuperVisibleHelipad(bB.center.x, bB.roofY, bB.center.z, 0xf59e0b);
+    startHelipad = createSuperVisibleHelipad(bA.center.x, bA.roofY, bA.center.z, 0x00ff88);
+    targetHelipad = createSuperVisibleHelipad(bB.center.x, bB.roofY, bB.center.z, 0xffaa00);
     layerGroups.mission.add(startHelipad.mesh, targetHelipad.mesh);
+
+    // 掛上超顯眼置頂 HTML 浮動戰術標記
+    createMissionFloatingLabel(bA.center.x, bA.roofY, bA.center.z, 'START', bA.title, bA.roofY);
+    createMissionFloatingLabel(bB.center.x, bB.roofY, bB.center.z, 'GOAL', bB.title, bB.roofY);
 
     document.getElementById('start-node-info').textContent = `${bA.title} (${Math.round(bA.roofY)}m)`;
     document.getElementById('target-node-info').textContent = `${bB.title} (${Math.round(bB.roofY)}m)`;
 
     resetFlightState();
 }
-
 function randomizeSeed() {
     document.getElementById('mission-seed-input').value = Math.floor(Math.random() * 9000 + 1000);
     applyMissionSeed();
