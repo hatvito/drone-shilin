@@ -258,13 +258,20 @@ window.ShilinDrone = window.ShilinDrone || {};
         let mainMesh;
         let topHeight = h;
 
-        if (shapeType === 'L' || shapeType === 'chamfer') {
+        if (shapeType === 'L' || shapeType === 'chamfer' || shapeType === 'U') {
             const s = new THREE.Shape();
             const hw = w / 2, hd = d / 2;
             if (shapeType === 'L') {
                 const cutW = w * 0.42, cutD = d * 0.42;
                 s.moveTo(-hw, -hd); s.lineTo(hw, -hd); s.lineTo(hw, hd - cutD);
                 s.lineTo(hw - cutW, hd - cutD); s.lineTo(hw - cutW, hd); s.lineTo(-hw, hd);
+            } else if (shapeType === 'U') {
+                const cutW = w * 0.36, cutD = d * 0.45;
+                const sideW = (w - cutW) / 2;
+                s.moveTo(-hw, -hd); s.lineTo(hw, -hd); s.lineTo(hw, hd);
+                s.lineTo(hw - sideW, hd); s.lineTo(hw - sideW, hd - cutD);
+                s.lineTo(-hw + sideW, hd - cutD); s.lineTo(-hw + sideW, hd);
+                s.lineTo(-hw, hd);
             } else {
                 const ch = Math.min(w, d) * 0.28;
                 s.moveTo(-hw, -hd); s.lineTo(hw - ch, -hd); s.lineTo(hw, -hd + ch);
@@ -273,7 +280,8 @@ window.ShilinDrone = window.ShilinDrone || {};
             s.closePath();
             const geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false });
             geo.rotateX(-Math.PI / 2);
-            mainMesh = new THREE.Mesh(geo, [wallMat, roofMat]);
+            // Three.js ExtrudeGeometry: index 0 為頂底水平蓋 (roofMat), index 1 為外牆立面 (wallMat)
+            mainMesh = new THREE.Mesh(geo, [roofMat, wallMat]);
             mainMesh.castShadow = true;
             mainMesh.receiveShadow = true;
             registerInteractive(mainMesh, defaultInfo);
@@ -351,6 +359,13 @@ window.ShilinDrone = window.ShilinDrone || {};
         }
 
         layerGroups.buildings.add(group);
+        group.userData.roofTopY = topHeight;
+
+        // 註冊物理避障碰撞盒 (供光達與穿梭機連續碰撞偵測)
+        const hw = Math.max(w, d) * 0.55;
+        const bMin = new THREE.Vector3(x - hw, 0, z - hw);
+        const bMax = new THREE.Vector3(x + hw, topHeight, z + hw);
+        physicalObstacles.push({ box: new THREE.Box3(bMin, bMax), name: defaultInfo.title });
 
         if (w >= 4.5 && d >= 4.5 && h >= 6.0) {
             missionEntities.candidateBuildings.push({

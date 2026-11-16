@@ -10,21 +10,55 @@ window.ShilinDrone = window.ShilinDrone || {};
     const { layerGroups, roadCurvesForTraffic, trafficCars, dynamicObjects } = ns.State;
 
     function buildTrafficSystem() {
-        // 1. 台北捷運淡水信義線 (4節編組車廂，帶有紅線專屬紅色彩帶)
+        // 1. 台北捷運淡水信義線 (4節編組經典紅線高架列車，配備車頭大燈、車尾紅燈與全景車窗)
         const mrtTrain = new THREE.Group();
         for (let i = 0; i < 4; i++) {
+            const carGroup = new THREE.Group();
+            carGroup.position.z = (i - 1.5) * 11.2;
+
+            // 車體主金屬結構 (不銹鋼銀白色澤)
             const car = new THREE.Mesh(
-                new THREE.BoxGeometry(3.2, 3.0, 10.5),
-                new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.5 })
+                new THREE.BoxGeometry(3.2, 2.9, 10.4),
+                new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.18, metalness: 0.65 })
             );
-            car.position.z = i * 11.2;
+            carGroup.add(car);
+
+            // 捷運淡水信義線經典鮮紅飾帶
             const stripe = new THREE.Mesh(
-                new THREE.BoxGeometry(3.35, 0.65, 10.5),
+                new THREE.BoxGeometry(3.32, 0.65, 10.45),
                 new THREE.MeshBasicMaterial({ color: 0xe11d48 })
             );
-            stripe.position.y = 0.2;
-            car.add(stripe);
-            mrtTrain.add(car);
+            stripe.position.y = 0.15;
+            carGroup.add(stripe);
+
+            // 兩側長條景觀車窗 (深海藍玻璃)
+            const win = new THREE.Mesh(
+                new THREE.BoxGeometry(3.3, 0.95, 9.2),
+                new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.1, metalness: 0.8 })
+            );
+            win.position.y = 0.55;
+            carGroup.add(win);
+
+            // 車頭車尾專屬燈光
+            if (i === 3) {
+                // 車頭雙大燈 (耀眼黃白暖光)
+                const hlMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+                [-0.9, 0.9].forEach(xOff => {
+                    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.2), hlMat);
+                    hl.position.set(xOff, 0.2, 5.25);
+                    carGroup.add(hl);
+                });
+            } else if (i === 0) {
+                // 車尾雙警示紅燈
+                const tlMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                [-0.9, 0.9].forEach(xOff => {
+                    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.2), tlMat);
+                    tl.position.set(xOff, 0.2, -5.25);
+                    carGroup.add(tl);
+                });
+            }
+
+            mrtTrain.add(carGroup);
         }
         dynamicObjects.mrtTrainGroup = mrtTrain;
         layerGroups.roads.add(mrtTrain);
@@ -52,13 +86,13 @@ window.ShilinDrone = window.ShilinDrone || {};
     }
 
     function updateTraffic(elapsed) {
-        // 更新捷運列車行駛
+        // 更新捷運列車行駛 (順暢行駛於高架軌道頂部)
         if (dynamicObjects.mrtCurve && dynamicObjects.mrtTrainGroup) {
-            const t = (elapsed * 0.045) % 1;
+            const t = (elapsed * 0.038) % 1;
             const pt = dynamicObjects.mrtCurve.getPoint(t);
             const tan = dynamicObjects.mrtCurve.getTangent(t);
-            dynamicObjects.mrtTrainGroup.position.set(pt.x, 16.8, pt.z);
-            dynamicObjects.mrtTrainGroup.lookAt(pt.x + tan.x, 16.8, pt.z + tan.z);
+            dynamicObjects.mrtTrainGroup.position.set(pt.x, 17.8, pt.z);
+            dynamicObjects.mrtTrainGroup.lookAt(pt.x + tan.x, 17.8, pt.z + tan.z);
         }
 
         // 更新各幹道動態車流
