@@ -12,18 +12,21 @@ window.ShilinDrone = window.ShilinDrone || {};
     function buildPhysicsBoundingBoxes() {
         physicalObstacles.length = 0;
 
-        // 收集所有建築主體包圍盒
+        // 收集所有建築主體包圍盒 (併入頂樓加蓋高度資訊)
         layerGroups.buildings.traverse((obj) => {
             if (obj.isMesh && obj.geometry) {
                 obj.updateWorldMatrix(true, false);
                 const b = new THREE.Box3().setFromObject(obj);
+                if (obj.userData && obj.userData.roofTopY) {
+                    b.max.y = Math.max(b.max.y, obj.userData.roofTopY);
+                }
                 physicalObstacles.push({ box: b, name: obj.userData.title || '都市建築主體' });
             }
         });
 
-        // 收集頂樓鐵皮加蓋與水塔包圍盒
+        // 收集獨立非合批頂樓鐵皮加蓋與水塔包圍盒 (排除整體 InstancedMesh 避免覆蓋全地圖空域)
         layerGroups.rooftops.traverse((obj) => {
-            if (obj.isMesh && obj.geometry) {
+            if (obj.isMesh && obj.geometry && !obj.isInstancedMesh) {
                 obj.updateWorldMatrix(true, false);
                 const b = new THREE.Box3().setFromObject(obj);
                 physicalObstacles.push({ box: b, name: '頂樓鐵皮加蓋/水塔' });
