@@ -105,7 +105,6 @@ window.ShilinDrone = window.ShilinDrone || {};
             category: cat,
             desc: desc
         });
-        mesh.userData.roofTopY = topHeight;
 
         // 5. 註冊實體 AABB 物理碰撞盒 (加入頂樓加蓋高度以保障光達精準避障)
         let topHeight = height;
@@ -114,6 +113,7 @@ window.ShilinDrone = window.ShilinDrone || {};
         } else if (opts.roofAddon === 'penthouse') {
             topHeight += 3.8;
         }
+        mesh.userData.roofTopY = topHeight;
 
         if (mesh.geometry.boundingBox) {
             const b = mesh.geometry.boundingBox.clone();
