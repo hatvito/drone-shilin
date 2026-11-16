@@ -120,9 +120,10 @@ window.ShilinDrone = window.ShilinDrone || {};
         const groundTex = new THREE.CanvasTexture(canvas);
         const groundGeo = new THREE.BoxGeometry(ns.Config.IMG_W, 8, ns.Config.IMG_H);
         const sideMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.9 });
+        const topMat = new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.88, metalness: 0.05 });
         const groundMaterials = [
             sideMat, sideMat,
-            new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.88, metalness: 0.05 }),
+            topMat,
             sideMat, sideMat, sideMat
         ];
 
@@ -130,6 +131,17 @@ window.ShilinDrone = window.ShilinDrone || {};
         groundMesh.position.y = -4;
         groundMesh.receiveShadow = true;
         ns.Scene.getScene().add(groundMesh);
+
+        // 嘗試載入資料夾內的真實高解析 Google Map 街圖作為地表精準對齊貼圖
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('map_shilin.png', (realMapTex) => {
+            realMapTex.wrapS = THREE.ClampToEdgeWrapping;
+            realMapTex.wrapT = THREE.ClampToEdgeWrapping;
+            topMat.map = realMapTex;
+            topMat.needsUpdate = true;
+        }, undefined, () => {
+            // 本機 file:// 安全策略限制時，無縫回退至已繪製的程序化高解析 Canvas 紋理
+        });
     }
 
     ns.Ground = {

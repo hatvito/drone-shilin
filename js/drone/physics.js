@@ -63,9 +63,12 @@ window.ShilinDrone = window.ShilinDrone || {};
             if (dGround > 0 && dGround < closest) closest = dGround;
         }
 
-        // 所有實體建築物 AABB 碰撞檢測
+        // 所有實體建築物 AABB 碰撞檢測 (加入空間快速距離篩選，大幅提升千棟建築即時光達效能)
         for (let i = 0; i < physicalObstacles.length; i++) {
             const box = physicalObstacles[i].box;
+            if (box.min.x - tempOrigin.x > closest || tempOrigin.x - box.max.x > closest) continue;
+            if (box.min.z - tempOrigin.z > closest || tempOrigin.z - box.max.z > closest) continue;
+
             const hit = tempRay.intersectBox(box, tempVec);
             if (hit) {
                 const d = tempOrigin.distanceTo(hit);
@@ -132,7 +135,10 @@ window.ShilinDrone = window.ShilinDrone || {};
             curr.add(stepVec);
             sphere.center.copy(curr);
             for (let i = 0; i < physicalObstacles.length; i++) {
-                if (physicalObstacles[i].box.intersectsSphere(sphere)) {
+                const box = physicalObstacles[i].box;
+                if (box.min.x - curr.x > DRONE_RADIUS || curr.x - box.max.x > DRONE_RADIUS) continue;
+                if (box.min.z - curr.z > DRONE_RADIUS || curr.z - box.max.z > DRONE_RADIUS) continue;
+                if (box.intersectsSphere(sphere)) {
                     return { hit: true, reason: `撞擊障礙物：${physicalObstacles[i].name}` };
                 }
             }

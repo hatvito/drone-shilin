@@ -32,7 +32,7 @@ window.ShilinDrone = window.ShilinDrone || {};
         renderer.toneMappingExposure = 0.82;
         container.appendChild(renderer.domElement);
 
-        // 4. 軌道控制器
+        // 4. 軌道控制器 (左右鍵互換：左鍵平移 PAN、右鍵旋轉 ROTATE)
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 0, 10);
         controls.enableDamping = true;
@@ -41,10 +41,13 @@ window.ShilinDrone = window.ShilinDrone || {};
         controls.minDistance = 18;
         controls.maxDistance = 1250;
         controls.mouseButtons = {
-            LEFT: THREE.MOUSE.ROTATE,
+            LEFT: THREE.MOUSE.PAN,
             MIDDLE: THREE.MOUSE.DOLLY,
-            RIGHT: THREE.MOUSE.PAN
+            RIGHT: THREE.MOUSE.ROTATE
         };
+
+        // 避免右鍵旋轉時彈出瀏覽器預設右鍵選單
+        renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // 5. 自然環境光與半球天光
         ambientLight = new THREE.AmbientLight(0xffffff, 0.38);
