@@ -1,0 +1,47 @@
+/* Map Markers & Pins */
+.map-label {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.map-label:hover {
+    transform: translate(-50%, -110%) scale(1.08);
+    z-index: 45;
+}
+
+.map-label .pin-stem {
+    width: 2px;
+    height: 8px;
+    margin: 0 auto;
+    background: currentColor;
+    opacity: 0.85;
+}
+
+/* Mission Start / Goal Special Pin */
+.mission-label {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 50;
+    white-space: nowrap;
+    transition: transform 0.2s ease;
+}
+
+.mission-label:hover {
+    transform: translate(-50%, -105%) scale(1.1);
+}
+
+@keyframes float-badge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.animate-floating {
+    animation: float-badge 2s ease-in-out infinite;
+}
