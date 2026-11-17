@@ -127,6 +127,11 @@ window.ShilinDrone = window.ShilinDrone || {};
             }
         }
 
+        // 同步重設幽靈車位置至起點
+        if (ns.GhostDrone && ns.GhostDrone.resetGhostPosition) {
+            ns.GhostDrone.resetGhostPosition();
+        }
+
         pauseFlightSimulation();
 
         const statusBadge = document.getElementById('flight-status-badge');
@@ -263,7 +268,12 @@ window.ShilinDrone = window.ShilinDrone || {};
                     ns.TelemetryUI.updateTelemetry();
                 }
 
-                alert(`🏆 恭喜！成功抵達士林終點大樓停機坪！\n總耗時：${flightState.flightTime.toFixed(1)} 秒\n達成率：100%`);
+                // 啟動完賽排行榜登錄視窗與幽靈車判定
+                if (ns.Leaderboard && ns.Leaderboard.showVictoryModal) {
+                    ns.Leaderboard.showVictoryModal(flightState.flightTime, blackboxLogs);
+                } else {
+                    alert(`🏆 恭喜！成功抵達士林終點大樓停機坪！\n總耗時：${flightState.flightTime.toFixed(1)} 秒\n達成率：100%`);
+                }
                 return;
             }
         }

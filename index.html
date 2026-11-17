@@ -35,12 +35,18 @@
                     </span>
                 </div>
                 <p class="text-[11px] text-slate-300 mt-0.5">
-                    士林都會自主演算法街廓 (1,400+ 棟) · 三級難度空域限高 (40m/25m/15m) · 捷運紅線淨空 · 滑鼠左鍵平移/右鍵旋轉
+                    士林都會自主演算法街廓 (1,400+ 棟) · 三級難度空域限高 (40m/25m/15m) · 雲端排行榜與幽靈車重播
                 </p>
             </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <!-- 雲端排行榜按鈕 -->
+            <button id="btn-open-leaderboard" onclick="openLeaderboardModal()" class="glass-panel px-3 py-1.5 rounded-xl shadow-xl hover:bg-slate-800 text-amber-300 font-black transition flex items-center gap-1.5 text-xs" title="查看本題前十傑紀錄與幽靈車資訊">
+                <span>🏆 雲端排行榜</span>
+                <span id="lb-online-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="雲端連線正常"></span>
+            </button>
+
             <!-- 難度分級切換 -->
             <div class="glass-panel p-1 rounded-xl shadow-xl flex items-center gap-1 text-xs font-bold">
                 <button id="btn-diff-easy" onclick="setDifficultyMode('easy')" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-emerald-300 font-bold transition" title="入門巡航：限高 40m，可越過普通公寓，須避開高樓華廈">🟢 入門 40m</button>
@@ -91,6 +97,22 @@
                 <button onclick="randomizeSeed()" class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
                     換一題
                 </button>
+            </div>
+
+            <!-- 考題最速紀錄與幽靈車切換 -->
+            <div class="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-800">
+                <div class="flex items-center gap-1 truncate mr-1">
+                    <span class="text-amber-400 font-black">👑 本題最速:</span>
+                    <span id="seed-best-record" class="text-slate-300 truncate">載入中...</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button id="btn-toggle-ghost" onclick="toggleGhostDrone()" class="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold hover:bg-cyan-500/30 transition text-[10px]" title="切換第 1 名幽靈車 3D 領跑重播">
+                        👻 幽靈車: 開
+                    </button>
+                    <button onclick="openLeaderboardModal()" class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/40 font-bold hover:bg-amber-500/30 transition text-[10px]" title="查看完整前十傑">
+                        前十傑
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-slate-700/60">
@@ -190,6 +212,127 @@
         </div>
     </div>
 
+    <!-- 雲端即時排行榜彈窗 -->
+    <div id="leaderboard-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden pointer-events-auto">
+        <div class="glass-panel-glow w-full max-w-2xl p-5 sm:p-6 rounded-3xl shadow-2xl flex flex-col gap-3.5 max-h-[90vh]">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">🏆</span>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                            <span>台北士林・雲端避障即時排行榜</span>
+                            <span id="lb-online-dot-modal" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        </h2>
+                        <p class="text-[11px] text-slate-300 mt-0.5">即時記錄每一道任務種子碼的最速前十傑，首名秒數將同步生成 3D 幽靈領跑無人機！</p>
+                    </div>
+                </div>
+                <button onclick="closeLeaderboardModal()" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+            </div>
+
+            <!-- 難度分類切換標籤 -->
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                    <button id="lb-tab-easy" onclick="switchLeaderboardTab('easy')" class="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-bold transition text-xs">🟢 入門 40m</button>
+                    <button id="lb-tab-normal" onclick="switchLeaderboardTab('normal')" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-black shadow-md transition text-xs">🟡 標準 25m</button>
+                    <button id="lb-tab-hard" onclick="switchLeaderboardTab('hard')" class="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-bold transition text-xs">🔴 極限 15m</button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleGhostDrone()" class="text-xs px-2.5 py-1 rounded-xl bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-bold hover:bg-cyan-900/50 transition">
+                        👻 切換幽靈車領跑
+                    </button>
+                </div>
+            </div>
+
+            <!-- 幽靈車當前狀態資訊條 -->
+            <div id="lb-ghost-info-box" class="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex items-center gap-2 text-xs">
+                <span class="text-lg">👻</span>
+                <div id="lb-ghost-desc" class="text-slate-300 leading-tight truncate">
+                    載入幽靈車資料中...
+                </div>
+            </div>
+
+            <!-- 排行榜表格 -->
+            <div class="flex-1 overflow-y-auto max-h-[320px] rounded-xl border border-slate-800 bg-slate-950/60">
+                <table class="w-full text-left text-xs">
+                    <thead class="sticky top-0 bg-slate-900/95 backdrop-blur-md text-slate-400 font-bold border-b border-slate-800">
+                        <tr>
+                            <th class="py-2 px-3 text-center w-16">排名</th>
+                            <th class="py-2 px-3">選手代號 / 姓名</th>
+                            <th class="py-2 px-3">完賽秒數</th>
+                            <th class="py-2 px-3">平均航速</th>
+                            <th class="py-2 px-3">達成時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-tbody" class="divide-y divide-slate-800/60">
+                    </tbody>
+                </table>
+                <div id="leaderboard-empty" class="p-8 text-center text-slate-500 text-xs hidden">
+                    🎯 該考題目前尚無任何飛手完賽登錄！<br>
+                    第一個成功降落目標停機坪的同學，其飛行軌跡將成為全場觀摩的「第 1 名幽靈領跑車」！
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-700/60">
+                <span id="lb-status-text" class="text-[11px] text-emerald-400 font-bold">🟢 雲端資料庫連線正常 (即時同步)</span>
+                <button onclick="closeLeaderboardModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">
+                    關閉視窗
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 完賽成就與登錄成績彈窗 -->
+    <div id="victory-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden pointer-events-auto">
+        <div class="glass-panel-glow w-full max-w-lg p-6 rounded-3xl shadow-2xl flex flex-col gap-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
+                <div class="flex items-center gap-2">
+                    <span class="text-3xl">🏆</span>
+                    <div>
+                        <h2 class="text-lg font-black text-white">任務達成・抵達終點停機坪！</h2>
+                        <p id="victory-info-meta" class="text-xs text-slate-300 mt-0.5">種子碼 #1337 · 標準競賽</p>
+                    </div>
+                </div>
+                <button onclick="closeVictoryModal()" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">✕</button>
+            </div>
+
+            <!-- 成績巨幅展示 -->
+            <div class="text-center py-2 px-4 rounded-2xl bg-gradient-to-b from-emerald-950/40 to-slate-900 border border-emerald-500/40">
+                <div class="text-xs text-emerald-400 font-bold uppercase tracking-wider">飛行總耗時 (Flight Time)</div>
+                <div class="text-4xl sm:text-5xl font-black text-white code-font my-1 tracking-tight">
+                    <span id="victory-time-val" class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-cyan-200 to-white">0.00</span>
+                    <span class="text-lg text-emerald-400">秒</span>
+                </div>
+                <div id="victory-crown-notice" class="text-xs text-amber-300 font-bold hidden pt-1">
+                    👑 恭喜打破該題全場最速紀錄！登錄後將成為幽靈領跑無人機！
+                </div>
+            </div>
+
+            <!-- 選手名稱輸入與登錄 -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <span>輸入選手代號 / 姓名或學號：</span>
+                    <span class="text-[10px] text-slate-400">登錄至雲端前十傑榜單</span>
+                </label>
+                <div class="flex items-center gap-2">
+                    <input id="player-name-input" type="text" maxlength="16" placeholder="例：301王小明" class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-cyan-500/60 text-white font-bold text-sm focus:outline-none focus:border-cyan-400 code-font">
+                </div>
+                <button id="btn-confirm-submit-score" onclick="submitScoreFromUI()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-cyan-500/25 transition">
+                    🚀 登錄到雲端排行榜
+                </button>
+                <div id="victory-submit-result" class="hidden"></div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-700/60">
+                <button onclick="openLeaderboardModal()" class="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1">
+                    <span>🏆 查看完整排行榜</span>
+                </button>
+                <button onclick="closeVictoryModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
+                    關閉 / 繼續挑戰
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 右下角大樓詳細資訊 -->
     <section class="fixed right-2.5 bottom-2.5 z-20 w-80 glass-panel p-3.5 rounded-2xl shadow-2xl pointer-events-auto hidden md:block">
         <div class="flex items-start justify-between gap-2">
@@ -232,11 +375,12 @@
     <script src="js/world/trees.js"></script>
     <script src="js/world/traffic.js"></script>
 
-    <!-- 4. 無人機實體與物理感測器 -->
+    <!-- 4. 無人機實體、幽靈車與物理感測器 -->
     <script src="js/drone/drone-model.js"></script>
     <script src="js/drone/trail.js"></script>
     <script src="js/drone/physics.js"></script>
     <script src="js/drone/lidar-visualizer.js"></script>
+    <script src="js/drone/ghost-drone.js"></script>
 
     <!-- 5. 任務系統與標籤 -->
     <script src="js/mission/labels.js"></script>
@@ -250,7 +394,12 @@
     <script src="js/ui/ui-controller.js"></script>
     <script src="js/simulation/flight-engine.js"></script>
 
-    <!-- 7. 主程式進入點 -->
+    <!-- 7. Firebase 雲端資料庫與排行榜系統 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="js/network/leaderboard.js"></script>
+
+    <!-- 8. 主程式進入點 -->
     <script src="js/main.js"></script>
 </body>
 </html>

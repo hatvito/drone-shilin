@@ -35,23 +35,31 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 5. 初始化任務起訖點停機坪
         ns.MissionManager.applyMissionSeed();
 
-        // 6. 設定使用者點擊互動
+        // 6. 初始化 3D 霓虹幽靈無人機與 Firebase 雲端排行榜
+        if (ns.GhostDrone && ns.GhostDrone.initGhostDrone) {
+            ns.GhostDrone.initGhostDrone();
+        }
+        if (ns.Leaderboard && ns.Leaderboard.initLeaderboard) {
+            ns.Leaderboard.initLeaderboard();
+        }
+
+        // 7. 設定使用者點擊互動
         ns.Interaction.setupInteraction();
 
-        // 7. 載入預設程式碼與 AI 提示詞
+        // 8. 載入預設程式碼與 AI 提示詞
         const codeEditor = document.getElementById('code-editor');
         if (codeEditor) codeEditor.value = ns.DefaultCode.DEFAULT_CODE;
 
         const promptText = document.getElementById('ai-prompt-text');
         if (promptText) promptText.value = ns.DefaultCode.AI_PROMPT_TEXT;
 
-        // 8. 更新頂部街廓建築統計標籤
+        // 9. 更新頂部街廓建築統計標籤
         const statsBadge = document.getElementById('stats-badge');
         if (statsBadge) {
             statsBadge.textContent = `${ns.State.stats.totalBuildingCount.toLocaleString()} 棟多樣化建築 · ${ns.State.stats.totalRoadSegments} 條彎曲道路/水岸`;
         }
 
-        // 9. 啟動主渲染循環
+        // 10. 啟動主渲染循環
         animate();
     });
 
@@ -66,6 +74,11 @@ window.ShilinDrone = window.ShilinDrone || {};
 
         // 無人機螺旋槳自旋
         ns.DroneModel.updateDroneAnimation(dt, ns.State.simSettings.isSimulating);
+
+        // 幽靈車即時同步重播步進與標籤更新
+        if (ns.GhostDrone && ns.GhostDrone.updateGhostDrone) {
+            ns.GhostDrone.updateGhostDrone(dt, ns.State.flightState.flightTime, ns.State.simSettings.isSimulating);
+        }
 
         // 兒童新樂園摩天輪與旋轉木馬旋轉
         const dyn = ns.State.dynamicObjects;

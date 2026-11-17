@@ -164,6 +164,11 @@ window.ShilinDrone = window.ShilinDrone || {};
         if (ns.FlightEngine && ns.FlightEngine.resetFlightState) {
             ns.FlightEngine.resetFlightState();
         }
+
+        // 同步通知排行榜與幽靈車載入當前題目資料
+        if (ns.Leaderboard && ns.Leaderboard.onMissionChanged) {
+            ns.Leaderboard.onMissionChanged(seedVal, (ns.State && ns.State.simSettings && ns.State.simSettings.difficulty) || 'normal');
+        }
     }
 
     function randomizeSeed() {
