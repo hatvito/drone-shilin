@@ -106,31 +106,42 @@ window.ShilinDrone = window.ShilinDrone || {};
 
         clearMissionLabels();
 
-        // 挑選兩棟屋頂高度低於 20m 且直線距離大於 220m 的大樓作為考題
+        // 根據當前難度動態計算停機坪最高允許屋頂高度 (保留安全起降裕度)
+        const maxAlt = (ns.State && ns.State.simSettings && ns.State.simSettings.maxAltitude) || 25.0;
+        const maxRoofY = Math.max(7.5, maxAlt - 2.5);
+
+        // 挑選兩棟屋頂高度低於 maxRoofY 且直線距離大於 180m 的大樓作為考題
+        const validCandidates = candidates.filter(c => c.roofY <= maxRoofY);
+        const pool = validCandidates.length >= 2 ? validCandidates : candidates;
+
         let idxA = 0, idxB = 1;
         let attempts = 0;
         while (attempts < 500) {
-            idxA = Math.floor(missionRandom() * candidates.length);
-            idxB = Math.floor(missionRandom() * candidates.length);
-            const candA = candidates[idxA];
-            const candB = candidates[idxB];
+            idxA = Math.floor(missionRandom() * pool.length);
+            idxB = Math.floor(missionRandom() * pool.length);
+            const candA = pool[idxA];
+            const candB = pool[idxB];
 
-            if (idxA !== idxB && candA.roofY <= 20.0 && candB.roofY <= 20.0 && candA.center.distanceTo(candB.center) > 220) {
+            if (idxA !== idxB && candA.roofY <= maxRoofY && candB.roofY <= maxRoofY && candA.center.distanceTo(candB.center) > 180) {
                 break;
             }
             attempts++;
         }
 
         if (attempts >= 500) {
-            idxA = Math.floor(missionRandom() * candidates.length);
-            do {
-                idxB = Math.floor(missionRandom() * candidates.length);
-            } while (idxA === idxB);
+            idxA = 0;
+            idxB = Math.min(pool.length - 1, 1);
+            for (let i = 1; i < pool.length; i++) {
+                if (pool[i].roofY <= maxRoofY && pool[i].center.distanceTo(pool[0].center) > 100) {
+                    idxB = i;
+                    break;
+                }
+            }
         }
 
         layerGroups.mission.clear();
-        const bA = candidates[idxA];
-        const bB = candidates[idxB];
+        const bA = pool[idxA];
+        const bB = pool[idxB];
 
         missionEntities.startBuildingMesh = bA.mesh;
         missionEntities.startBuildingOriginalMat = applyIsolatedHighlight(missionEntities.startBuildingMesh, 0x00ff88);

@@ -124,10 +124,89 @@ window.ShilinDrone = window.ShilinDrone || {};
         });
     }
 
+    const DIFFICULTY_CONFIGS = {
+        easy: {
+            name: '入門巡航',
+            maxAltitude: 40.0,
+            recommendedCruise: 24.0,
+            badgeClass: 'px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30 transition',
+            inactiveClass: 'px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-emerald-300 font-bold transition',
+            limitText: '🟢 入門限高：0 ~ 40.0 公尺 (適合新手測試演算法)'
+        },
+        normal: {
+            name: '標準競賽',
+            maxAltitude: 25.0,
+            recommendedCruise: 12.5,
+            badgeClass: 'px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-lg shadow-amber-500/30 transition',
+            inactiveClass: 'px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-amber-300 font-bold transition',
+            limitText: '🟡 標準限高：0 ~ 25.0 公尺 (經典都會峽谷穿梭)'
+        },
+        hard: {
+            name: '極限巷戰',
+            maxAltitude: 15.0,
+            recommendedCruise: 8.5,
+            badgeClass: 'px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-red-600 text-white font-black shadow-lg shadow-rose-500/30 transition',
+            inactiveClass: 'px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-rose-300 font-bold transition',
+            limitText: '🔴 極限限高：0 ~ 15.0 公尺 (嚴格貼地・禁止越頂)'
+        }
+    };
+
+    function setDifficultyMode(mode = 'normal', silent = false) {
+        if (!DIFFICULTY_CONFIGS[mode]) mode = 'normal';
+        const cfg = DIFFICULTY_CONFIGS[mode];
+
+        simSettings.difficulty = mode;
+        simSettings.maxAltitude = cfg.maxAltitude;
+        if (ns.Config && ns.Config.setMaxAltitude) {
+            ns.Config.setMaxAltitude(cfg.maxAltitude);
+        }
+
+        // 更新頂部難度切換按鈕視覺
+        ['easy', 'normal', 'hard'].forEach(m => {
+            const btn = document.getElementById('btn-diff-' + m);
+            if (btn) {
+                btn.className = (m === mode) ? DIFFICULTY_CONFIGS[m].badgeClass : DIFFICULTY_CONFIGS[m].inactiveClass;
+            }
+        });
+
+        // 更新右下角空域限高標籤
+        const limitSpan = document.getElementById('info-limit-span');
+        if (limitSpan) {
+            limitSpan.textContent = cfg.limitText;
+            limitSpan.className = (mode === 'easy')
+                ? 'text-emerald-400 font-bold'
+                : (mode === 'hard' ? 'text-rose-400 font-bold' : 'text-amber-400 font-bold');
+        }
+
+        // 更新 AI 提示詞彈窗文字
+        const aiPromptEl = document.getElementById('ai-prompt-text');
+        if (aiPromptEl && ns.DefaultCode && ns.DefaultCode.getAiPrompt) {
+            aiPromptEl.value = ns.DefaultCode.getAiPrompt(mode);
+        }
+
+        // 重新依當前難度上限過濾並生成適配停機坪
+        if (ns.MissionManager && ns.MissionManager.applyMissionSeed) {
+            ns.MissionManager.applyMissionSeed();
+        }
+
+        // 重設飛行姿態與狀態
+        if (ns.FlightEngine && ns.FlightEngine.resetFlightState) {
+            ns.FlightEngine.resetFlightState();
+        }
+
+        if (ns.TelemetryUI && ns.TelemetryUI.updateTelemetry) {
+            ns.TelemetryUI.updateTelemetry();
+        }
+    }
+
     function resetDefaultCode() {
-        if (confirm('確定要還原為預設 StudentController 類別代碼嗎？')) {
+        const mode = simSettings.difficulty || 'normal';
+        const modeName = DIFFICULTY_CONFIGS[mode] ? DIFFICULTY_CONFIGS[mode].name : '標準競賽';
+        if (confirm(`確定要還原為【${modeName}】預設 StudentController 代碼嗎？`)) {
             const ed = document.getElementById('code-editor');
-            if (ed && ns.DefaultCode) ed.value = ns.DefaultCode.DEFAULT_CODE;
+            if (ed && ns.DefaultCode && ns.DefaultCode.getDefaultCode) {
+                ed.value = ns.DefaultCode.getDefaultCode(mode);
+            }
         }
     }
 
@@ -149,6 +228,7 @@ window.ShilinDrone = window.ShilinDrone || {};
     }
 
     ns.UIController = {
+        setDifficultyMode,
         setCameraViewMode,
         setSimSpeed,
         toggleLidarVisuals,
@@ -166,6 +246,7 @@ window.ShilinDrone = window.ShilinDrone || {};
     };
 
     // 掛載至 window 供 HTML 中的 onclick 直接呼叫
+    window.setDifficultyMode = setDifficultyMode;
     window.setCameraViewMode = setCameraViewMode;
     window.setSimSpeed = setSimSpeed;
     window.toggleLidarVisuals = toggleLidarVisuals;

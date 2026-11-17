@@ -17,7 +17,17 @@ window.ShilinDrone = window.ShilinDrone || {};
 
         if (distEl) distEl.textContent = `${flightState.remainingDistance.toFixed(1)} m`;
         if (progEl) progEl.textContent = `${flightState.progress.toFixed(1)}%`;
-        if (altEl) altEl.textContent = `${flightState.pos.y.toFixed(1)} m`;
+        if (altEl) {
+            const maxAlt = (ns.State && ns.State.simSettings && ns.State.simSettings.maxAltitude) || 25.0;
+            altEl.textContent = `${flightState.pos.y.toFixed(1)} / ${maxAlt.toFixed(0)}m`;
+            if (maxAlt - flightState.pos.y < 2.5) {
+                altEl.className = 'text-xs font-black text-rose-500 code-font animate-pulse';
+            } else if (maxAlt - flightState.pos.y < 5.0) {
+                altEl.className = 'text-xs font-black text-amber-400 code-font';
+            } else {
+                altEl.className = 'text-xs font-black text-emerald-400 code-font';
+            }
+        }
         if (barInner) barInner.style.width = `${flightState.progress}%`;
         if (timeEl) timeEl.textContent = `${flightState.flightTime.toFixed(1)} s`;
     }

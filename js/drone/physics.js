@@ -113,11 +113,12 @@ window.ShilinDrone = window.ShilinDrone || {};
 
     // CCD (Continuous Collision Detection) 連續碰撞細分檢測，防止高速穿牆
     function checkContinuousCollision(fromPos, toPos) {
-        if (toPos.y < MIN_ALTITUDE || toPos.y > MAX_ALTITUDE) {
+        const maxAlt = (ns.State && ns.State.simSettings && ns.State.simSettings.maxAltitude) || (ns.Config && ns.Config.getMaxAltitude ? ns.Config.getMaxAltitude() : 25.0);
+        if (toPos.y < MIN_ALTITUDE || toPos.y > maxAlt) {
             return {
                 hit: true,
-                reason: toPos.y > MAX_ALTITUDE
-                    ? '超出 25.0m 低空空域上限違規墜毀（挑戰賽嚴禁高空飛越！）'
+                reason: toPos.y > maxAlt
+                    ? `超出 ${maxAlt.toFixed(1)}m 限高上限違規墜毀（當前難度模式禁止超高！）`
                     : '觸地墜毀 (高度 Y <= 0)'
             };
         }

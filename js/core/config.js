@@ -12,9 +12,11 @@ window.ShilinDrone = window.ShilinDrone || {};
     const MAP_HALF_W = IMG_W / 2; // 512.0
     const MAP_HALF_D = IMG_H / 2; // 267.0
 
-    // 飛行空域規範
+    // 飛行空域規範 (支援三級難度動態調整：40m / 25m / 15m)
     const MIN_ALTITUDE = 0.0;
-    const MAX_ALTITUDE = 25.0; // 嚴格低空巷戰限高 25m
+    let MAX_ALTITUDE = 25.0; // 預設標準限高 25m
+    const setMaxAltitude = (val) => { MAX_ALTITUDE = val; };
+    const getMaxAltitude = () => MAX_ALTITUDE;
 
     // 光達與感測器常數
     const DRONE_RADIUS = 0.25;
@@ -57,6 +59,8 @@ window.ShilinDrone = window.ShilinDrone || {};
         MAP_HALF_D,
         MIN_ALTITUDE,
         MAX_ALTITUDE,
+        setMaxAltitude,
+        getMaxAltitude,
         DRONE_RADIUS,
         LIDAR_BEAMS,
         LIDAR_MAX_DIST,

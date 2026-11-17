@@ -44,7 +44,9 @@ window.ShilinDrone = window.ShilinDrone || {};
         simSpeed: 1.0,           // 1.0x, 2.0x, 4.0x 加速測試
         cameraViewMode: 'orbit', // 'orbit' | 'follow'
         showLidarRays: false,    // 是否在 3D 場景即時顯示 16 向光達光束
-        soundEnabled: true       // 是否啟用 Web Audio 音效回饋
+        soundEnabled: true,      // 是否啟用 Web Audio 音效回饋
+        difficulty: 'normal',    // 'easy' (40m) | 'normal' (25m) | 'hard' (15m)
+        maxAltitude: 25.0        // 當前難度空域限高
     };
 
     // 任務相關實體參考

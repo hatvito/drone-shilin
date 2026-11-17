@@ -35,12 +35,19 @@
                     </span>
                 </div>
                 <p class="text-[11px] text-slate-300 mt-0.5">
-                    士林都會自主演算法街廓 (1,400+ 棟) · 捷運紅線高架淨空 · 暖色系立面與五彩鐵皮加蓋 · 滑鼠左鍵平移/右鍵旋轉
+                    士林都會自主演算法街廓 (1,400+ 棟) · 三級難度空域限高 (40m/25m/15m) · 捷運紅線淨空 · 滑鼠左鍵平移/右鍵旋轉
                 </p>
             </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <!-- 難度分級切換 -->
+            <div class="glass-panel p-1 rounded-xl shadow-xl flex items-center gap-1 text-xs font-bold">
+                <button id="btn-diff-easy" onclick="setDifficultyMode('easy')" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-emerald-300 font-bold transition" title="入門巡航：限高 40m，可越過普通公寓，須避開高樓華廈">🟢 入門 40m</button>
+                <button id="btn-diff-normal" onclick="setDifficultyMode('normal')" class="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-lg shadow-amber-500/30 transition" title="標準競賽：限高 25m，經典都會峽谷穿梭，需在公寓天際線與街道間避障">🟡 標準 25m</button>
+                <button id="btn-diff-hard" onclick="setDifficultyMode('hard')" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-700/60 text-rose-300 font-bold transition" title="極限巷戰：限高 15m，嚴禁飛越公寓屋頂！強制於馬路、巷弄與河道貼地穿梭">🔴 極限 15m</button>
+            </div>
+
             <!-- 視角切換 -->
             <div class="glass-panel p-1 rounded-xl shadow-xl flex items-center gap-1 text-xs font-bold">
                 <button id="view-orbit-btn" onclick="setCameraViewMode('orbit')" class="px-2.5 py-1.5 rounded-lg bg-cyan-500 text-slate-950 transition">🌐 全區鳥瞰</button>
@@ -197,7 +204,7 @@
             滑鼠操作：左鍵平移 · 右鍵旋轉 · 滾輪縮放 · 單擊建築檢視屬性。
         </p>
         <div class="mt-2 pt-2 border-t border-slate-700/70 flex items-center justify-between text-[11px] text-slate-400">
-            <span class="text-rose-400 font-bold">低空挑戰限高：0 ~ 25.0 公尺 (禁止高空飛越)</span>
+            <span id="info-limit-span" class="text-amber-400 font-bold">🟡 標準限高：0 ~ 25.0 公尺 (經典都會峽谷穿梭)</span>
             <span id="info-coords">點擊大樓可查閱</span>
         </div>
     </section>
