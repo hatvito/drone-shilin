@@ -126,17 +126,6 @@ window.ShilinDrone = window.ShilinDrone || {};
             }
         });
 
-        // 10. 監聽 DOM 變動，確保 Tailwind CSS 重置不會覆蓋 display="none"
-        const observer = new MutationObserver(() => {
-            syncFlyoutScrollbars();
-        });
-        observer.observe(container, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['display', 'style', 'class']
-        });
-
         // 響應視窗縮放
         window.addEventListener('resize', onWorkspaceResize);
 
@@ -236,31 +225,42 @@ window.ShilinDrone = window.ShilinDrone || {};
         });
     }
 
+    let isSyncingFlyout = false;
     // 同步並確保 Flyout 關閉時其垂直捲軸 (blocklyFlyoutScrollbar) 100% 隱藏消失
     function syncFlyoutScrollbars() {
-        if (!workspace) return;
-        const toolbox = workspace.getToolbox ? workspace.getToolbox() : null;
-        const flyout = (toolbox && toolbox.getFlyout) ? toolbox.getFlyout() : (workspace.getFlyout ? workspace.getFlyout() : null);
-        const isFlyoutVisible = flyout && flyout.isVisible && flyout.isVisible();
-        const flyoutScrollbars = document.querySelectorAll('.blocklyFlyoutScrollbar');
-        flyoutScrollbars.forEach(sb => {
-            if (!isFlyoutVisible) {
-                sb.style.setProperty('display', 'none', 'important');
-                sb.style.setProperty('visibility', 'hidden', 'important');
-                sb.setAttribute('display', 'none');
-                sb.querySelectorAll('rect, g').forEach(el => {
-                    el.style.setProperty('display', 'none', 'important');
-                    el.style.setProperty('visibility', 'hidden', 'important');
-                });
-            } else {
-                sb.style.removeProperty('display');
-                sb.style.removeProperty('visibility');
-                sb.querySelectorAll('rect, g').forEach(el => {
-                    el.style.removeProperty('display');
-                    el.style.removeProperty('visibility');
-                });
-            }
-        });
+        if (isSyncingFlyout || !workspace) return;
+        isSyncingFlyout = true;
+        try {
+            const toolbox = workspace.getToolbox ? workspace.getToolbox() : null;
+            const flyout = (toolbox && toolbox.getFlyout) ? toolbox.getFlyout() : (workspace.getFlyout ? workspace.getFlyout() : null);
+            const isFlyoutVisible = flyout && flyout.isVisible && flyout.isVisible();
+            const flyoutScrollbars = document.querySelectorAll('.blocklyFlyoutScrollbar');
+            flyoutScrollbars.forEach(sb => {
+                if (!isFlyoutVisible) {
+                    if (sb.style.display !== 'none') {
+                        sb.style.setProperty('display', 'none', 'important');
+                        sb.style.setProperty('visibility', 'hidden', 'important');
+                        sb.setAttribute('display', 'none');
+                        sb.querySelectorAll('rect, g').forEach(el => {
+                            el.style.setProperty('display', 'none', 'important');
+                            el.style.setProperty('visibility', 'hidden', 'important');
+                        });
+                    }
+                } else {
+                    if (sb.style.display === 'none') {
+                        sb.style.removeProperty('display');
+                        sb.style.removeProperty('visibility');
+                        sb.removeAttribute('display');
+                        sb.querySelectorAll('rect, g').forEach(el => {
+                            el.style.removeProperty('display');
+                            el.style.removeProperty('visibility');
+                        });
+                    }
+                }
+            });
+        } finally {
+            isSyncingFlyout = false;
+        }
     }
 
     // 收回積木抽屜與取消選取

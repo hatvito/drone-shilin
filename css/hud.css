@@ -96,12 +96,15 @@ g[display="none"],
     display: none !important;
 }
 
+.blocklyFlyout[display="none"] ~ .blocklyFlyoutScrollbar,
 .blocklyFlyoutScrollbar[display="none"],
 .blocklyScrollbar[display="none"],
 .blocklyScrollbarVertical[display="none"],
 .blocklyScrollbarHorizontal[display="none"] {
     display: none !important;
     visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .blocklyTreeLabel {
