@@ -411,8 +411,51 @@ window.ShilinDrone = window.ShilinDrone || {};
         changeEditorFontSize,
         insertCodeSnippet,
         resetDefaultCodeModal,
-        setupEditorTabIndent
+        setupEditorTabIndent,
+        toggleCardCollapse
     };
+
+    // 視窗面板展開/折疊收合切換函式
+    function toggleCardCollapse(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        const body = document.getElementById(cardId + '-body');
+        const toggleBtn = document.getElementById(cardId + '-toggle-btn');
+        const badge = document.getElementById('seed-badge-collapsed');
+
+        if (!body) {
+            card.classList.toggle('hidden');
+            return;
+        }
+
+        const isHidden = body.classList.contains('hidden');
+        if (isHidden) {
+            body.classList.remove('hidden');
+            if (toggleBtn) toggleBtn.textContent = '▲';
+            if (badge) badge.classList.add('hidden');
+            if (cardId === 'blockly-card' || cardId === 'code-card') {
+                card.classList.add('flex-1');
+                card.classList.remove('flex-none');
+                setTimeout(() => {
+                    if (ns.BlocklyManager && ns.BlocklyManager.resize) {
+                        ns.BlocklyManager.resize();
+                    }
+                }, 60);
+            }
+        } else {
+            body.classList.add('hidden');
+            if (toggleBtn) toggleBtn.textContent = '▼';
+            if (badge) {
+                badge.classList.remove('hidden');
+                const input = document.getElementById('mission-seed-input');
+                if (input) badge.textContent = '#' + input.value;
+            }
+            if (cardId === 'blockly-card' || cardId === 'code-card') {
+                card.classList.remove('flex-1');
+                card.classList.add('flex-none');
+            }
+        }
+    }
 
     // 掛載至 window 供 HTML 中的 onclick 直接呼叫
     window.setDifficultyMode = setDifficultyMode;
@@ -436,4 +479,5 @@ window.ShilinDrone = window.ShilinDrone || {};
     window.changeEditorFontSize = changeEditorFontSize;
     window.insertCodeSnippet = insertCodeSnippet;
     window.resetDefaultCodeModal = resetDefaultCodeModal;
+    window.toggleCardCollapse = toggleCardCollapse;
 })(window.ShilinDrone);

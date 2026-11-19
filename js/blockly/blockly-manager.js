@@ -65,6 +65,53 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 首次即時編譯
         compileBlocksToCode();
 
+        // 5. 設定 Flyout 自動關閉 (拖拉積木完成後自動收回抽屜)
+        const flyout = (workspace.getFlyout ? workspace.getFlyout() : null) || (workspace.getToolbox && workspace.getToolbox().getFlyout ? workspace.getToolbox().getFlyout() : null);
+        if (flyout) {
+            flyout.autoClose = true;
+        }
+
+        // 6. 攔截 Toolbox 點擊：再次點擊同一分類即可取消選取並收回抽屜
+        const toolbox = workspace.getToolbox();
+        if (toolbox) {
+            const origSetSelectedItem = toolbox.setSelectedItem.bind(toolbox);
+            toolbox.setSelectedItem = function(item) {
+                // 如果點擊的是目前已經展開的同一分類，則清除選取並收回抽屜
+                if (this.selectedItem_ === item && item !== null) {
+                    this.clearSelection();
+                    const activeFlyout = this.getFlyout ? this.getFlyout() : this.flyout_;
+                    if (activeFlyout) activeFlyout.hide();
+                    updateFlyoutCloseButton(false);
+                    return;
+                }
+                origSetSelectedItem(item);
+                updateFlyoutCloseButton(item !== null);
+            };
+        }
+
+        // 7. 點擊工作區空白背景或非抽屜區域時，自動收回抽屜
+        container.addEventListener('pointerdown', (e) => {
+            const isInsideDrawer = e.target && e.target.closest && (e.target.closest('.blocklyFlyout') || e.target.closest('.blocklyToolboxDiv'));
+            if (!isInsideDrawer) {
+                closeFlyout();
+            }
+        });
+
+        // 8. 點擊 3D 場景或其他外部區域時，自動收回抽屜
+        document.addEventListener('pointerdown', (e) => {
+            const blocklyCard = document.getElementById('blockly-card');
+            if (blocklyCard && !blocklyCard.contains(e.target)) {
+                closeFlyout();
+            }
+        });
+
+        // 9. 按下 Escape 鍵時，自動收回抽屜
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeFlyout();
+            }
+        });
+
         // 響應視窗縮放
         window.addEventListener('resize', onWorkspaceResize);
 
@@ -163,6 +210,32 @@ window.ShilinDrone = window.ShilinDrone || {};
         });
     }
 
+    // 收回積木抽屜與取消選取
+    function closeFlyout() {
+        if (!workspace) return;
+        const toolbox = workspace.getToolbox();
+        if (toolbox) {
+            toolbox.clearSelection();
+        }
+        const flyout = (toolbox && toolbox.getFlyout) ? toolbox.getFlyout() : (workspace.getFlyout ? workspace.getFlyout() : null);
+        if (flyout) {
+            flyout.hide();
+        }
+        updateFlyoutCloseButton(false);
+    }
+
+    // 控制「✕ 收回」按鈕的顯隱狀態
+    function updateFlyoutCloseButton(show) {
+        const btn = document.getElementById('btn-close-flyout');
+        if (btn) {
+            if (show) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+    }
+
     // 展開 / 收合全螢幕積木工作區
     function toggleFullscreenWorkspace() {
         isFullscreenWorkspace = !isFullscreenWorkspace;
@@ -171,13 +244,13 @@ window.ShilinDrone = window.ShilinDrone || {};
 
         if (panel) {
             if (isFullscreenWorkspace) {
-                panel.classList.remove('w-84', 'sm:w-96', 'left-2.5', 'top-20', 'bottom-3');
+                panel.classList.remove('w-80', 'sm:w-96', 'left-2.5', 'top-16', 'sm:top-20', 'bottom-3');
                 panel.classList.add('fixed', 'inset-3', 'z-40', 'w-auto');
-                if (btn) btn.innerHTML = '<span>🗗 縮回側欄</span>';
+                if (btn) btn.innerHTML = '<span>🗗 縮回</span>';
             } else {
                 panel.classList.remove('fixed', 'inset-3', 'z-40', 'w-auto');
-                panel.classList.add('fixed', 'left-2.5', 'top-20', 'bottom-3', 'z-20', 'w-84', 'sm:w-96');
-                if (btn) btn.innerHTML = '<span>⛶ 展開全屏積木台</span>';
+                panel.classList.add('fixed', 'left-2.5', 'top-16', 'sm:top-20', 'bottom-3', 'z-20', 'w-80', 'sm:w-96');
+                if (btn) btn.innerHTML = '<span>⛶ 展開</span>';
             }
             setTimeout(onWorkspaceResize, 150);
         }
@@ -192,7 +265,9 @@ window.ShilinDrone = window.ShilinDrone || {};
         closeCodePreviewModal,
         copyGeneratedCode,
         toggleFullscreenWorkspace,
-        onWorkspaceResize
+        onWorkspaceResize,
+        resize: onWorkspaceResize,
+        closeFlyout
     };
 
     // 掛載至 window 供 HTML 按鈕直接呼叫
@@ -201,4 +276,5 @@ window.ShilinDrone = window.ShilinDrone || {};
     window.copyGeneratedCode = copyGeneratedCode;
     window.resetDefaultBlocks = resetDefaultBlocks;
     window.toggleFullscreenWorkspace = toggleFullscreenWorkspace;
+    window.closeFlyout = closeFlyout;
 })(window.ShilinDrone);
