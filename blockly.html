@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/hud.css">
     <link rel="stylesheet" href="css/labels.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛸</text></svg>">
 </head>
 <body class="text-slate-100 bg-slate-950">
 
@@ -92,7 +93,7 @@
     </header>
 
     <!-- 左側 Blockly 積木控制面板 -->
-    <aside id="blockly-panel" class="fixed left-2.5 top-20 bottom-3 z-20 w-84 sm:w-96 flex flex-col gap-2 pointer-events-none transition-all duration-300">
+    <aside id="blockly-panel" class="fixed left-2.5 top-20 bottom-3 z-20 w-80 sm:w-96 flex flex-col gap-2 pointer-events-none transition-all duration-300 overflow-y-auto pr-0.5">
         <!-- 種子碼任務區 -->
         <div class="glass-panel p-3 rounded-2xl shadow-2xl pointer-events-auto flex flex-col gap-2">
             <div class="flex items-center justify-between">
@@ -144,7 +145,7 @@
         </div>
 
         <!-- 學生 Blockly 積木拖拉工作區 -->
-        <div class="glass-panel p-3 rounded-2xl shadow-2xl pointer-events-auto flex-1 flex flex-col min-h-[320px]">
+        <div class="glass-panel p-3 rounded-2xl shadow-2xl pointer-events-auto flex-1 flex flex-col min-h-[220px]">
             <div class="flex items-center justify-between mb-1.5">
                 <div class="flex items-center gap-1.5">
                     <span class="text-xs font-black text-purple-300 flex items-center gap-1">
@@ -170,7 +171,7 @@
             </div>
 
             <!-- Google Blockly SVG 畫布掛載容器 -->
-            <div id="blockly-workspace-div" class="flex-1 w-full rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 min-h-[220px]"></div>
+            <div id="blockly-workspace-div" class="flex-1 w-full rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 min-h-[160px]"></div>
 
             <!-- 底層隱藏代碼容器 (供 FlightEngine 無縫執行) -->
             <textarea id="code-editor" class="hidden" spellcheck="false"></textarea>

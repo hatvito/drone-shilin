@@ -64,18 +64,29 @@
 }
 
 /* Blockly Custom Dark Tweaks */
+.blocklySvg {
+    background-color: #020617 !important; /* slate-950 dark */
+    outline: none !important;
+}
+
+.blocklyMainBackground {
+    fill: #020617 !important;
+    stroke: none !important;
+    stroke-width: 0 !important;
+}
+
 .blocklyToolboxDiv {
     background-color: rgba(15, 23, 42, 0.95) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .blocklyFlyoutBackground {
-    fill: rgba(15, 23, 42, 0.94) !important;
-    fill-opacity: 0.95 !important;
+    fill: rgba(15, 23, 42, 0.96) !important;
+    fill-opacity: 0.96 !important;
 }
 
-.blocklyMainBackground {
-    stroke-width: 0 !important;
+.blocklyScrollbarHandle {
+    fill: #334155 !important;
 }
 
 .blocklyTreeLabel {

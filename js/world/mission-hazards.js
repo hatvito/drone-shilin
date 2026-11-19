@@ -27,10 +27,12 @@ window.ShilinDrone = window.ShilinDrone || {};
         const scene = ns.Scene.getScene();
 
         // 1. 濃霧天候控制
-        const skyColor = missionConfig.weather === 'sunset' ? 0xfb923c : (missionConfig.weather === 'night' ? 0x090d16 : 0xdbeafe);
+        const skyColor = missionConfig.weather === 'sunset' ? 0xfb923c : (missionConfig.weather === 'night' ? 0x0f172a : 0xdbeafe);
         if (missionConfig.hasFog) {
-            scene.fog = new THREE.FogExp2(0x94a3b8, 0.024);
+            // 濃霧密度：0.0012 (既有迷濛濃霧效果，又保證 470m 鳥瞰街廓全景清晰可見)
+            scene.fog = new THREE.FogExp2(0x94a3b8, 0.0012);
         } else {
+            // 晴天遠景微薄大氣霧
             scene.fog = new THREE.FogExp2(skyColor, 0.00032);
         }
 

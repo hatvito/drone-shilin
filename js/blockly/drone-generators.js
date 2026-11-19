@@ -12,9 +12,10 @@ window.ShilinDrone = window.ShilinDrone || {};
             : (typeof Blockly !== 'undefined' ? Blockly.JavaScript : null);
 
         if (!jsGen) return;
+        const dict = (jsGen.forBlock) ? jsGen.forBlock : jsGen;
 
         // 1. 核心根節點積木生成器
-        jsGen['drone_on_step'] = function(block) {
+        dict['drone_on_step'] = function(block) {
             const branch = jsGen.statementToCode(block, 'DO');
             const code = `
 class StudentController {
@@ -60,19 +61,19 @@ ${branch}
         };
 
         // 2. 巡航速度設定
-        jsGen['drone_set_cruise_speed'] = function(block) {
+        dict['drone_set_cruise_speed'] = function(block) {
             const speed = Number(block.getFieldValue('SPEED')) || 11.5;
             return `        currentSpeed = ${speed};\n        vx = (dx / horizDist) * currentSpeed;\n        vz = (dz / horizDist) * currentSpeed;\n`;
         };
 
         // 3. 巡航高度鎖定
-        jsGen['drone_set_cruise_altitude'] = function(block) {
+        dict['drone_set_cruise_altitude'] = function(block) {
             const alt = Number(block.getFieldValue('ALTITUDE')) || 12.5;
             return `        targetAlt = ${alt};\n        vy = (targetAlt - y) * 2.2;\n`;
         };
 
         // 4. 16 向虛擬光達自動環周排斥避障
-        jsGen['drone_auto_lidar_repulsion'] = function(block) {
+        dict['drone_auto_lidar_repulsion'] = function(block) {
             const radius = Number(block.getFieldValue('RADIUS')) || 15.0;
             const force = Number(block.getFieldValue('FORCE')) || 2.2;
             return `
@@ -90,7 +91,7 @@ ${branch}
         };
 
         // 5. 探測指定方向障礙物距離
-        jsGen['drone_raycast_distance'] = function(block) {
+        dict['drone_raycast_distance'] = function(block) {
             const dir = block.getFieldValue('DIR');
             const range = Number(block.getFieldValue('RANGE')) || 25.0;
 
@@ -112,7 +113,7 @@ ${branch}
         };
 
         // 6. 16 向光達四周最近障礙物距離
-        jsGen['drone_lidar_min_distance'] = function(block) {
+        dict['drone_lidar_min_distance'] = function(block) {
             const code = `(function() {
             let _min = 999;
             for (let _i = 0; _i < 16; _i++) {
@@ -126,17 +127,17 @@ ${branch}
         };
 
         // 7. 到終點停機坪水平距離
-        jsGen['drone_target_distance'] = function(block) {
+        dict['drone_target_distance'] = function(block) {
             return ['horizDist', jsGen.ORDER_ATOMIC || 0];
         };
 
         // 8. 目前飛行高度
-        jsGen['drone_current_altitude'] = function(block) {
+        dict['drone_current_altitude'] = function(block) {
             return ['y', jsGen.ORDER_ATOMIC || 0];
         };
 
         // 9. 緊急向指定方向偏向避障
-        jsGen['drone_steer_dodge'] = function(block) {
+        dict['drone_steer_dodge'] = function(block) {
             const dir = block.getFieldValue('DIR');
             const power = Number(block.getFieldValue('POWER')) || 5.0;
 
@@ -153,14 +154,14 @@ ${branch}
         };
 
         // 10. 前方危急緊急減速
-        jsGen['drone_emergency_brake'] = function(block) {
+        dict['drone_emergency_brake'] = function(block) {
             const percent = Number(block.getFieldValue('PERCENT')) || 50;
             const factor = (percent / 100).toFixed(2);
             return `        vx *= ${factor};\n        vz *= ${factor};\n`;
         };
 
         // 11. 手動自訂航向速度向量
-        jsGen['drone_custom_velocity'] = function(block) {
+        dict['drone_custom_velocity'] = function(block) {
             const vx = jsGen.valueToCode(block, 'VX', jsGen.ORDER_ASSIGNMENT || 0) || 'vx';
             const vy = jsGen.valueToCode(block, 'VY', jsGen.ORDER_ASSIGNMENT || 0) || 'vy';
             const vz = jsGen.valueToCode(block, 'VZ', jsGen.ORDER_ASSIGNMENT || 0) || 'vz';

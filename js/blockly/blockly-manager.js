@@ -68,6 +68,14 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 響應視窗縮放
         window.addEventListener('resize', onWorkspaceResize);
 
+        // 確保 DOM 渲染與 Flex 尺寸計算完成後呼叫 svgResize 與置中
+        setTimeout(() => {
+            if (workspace) {
+                Blockly.svgResize(workspace);
+                workspace.scrollCenter();
+            }
+        }, 120);
+
         console.log('[Blockly] 視覺化積木工作區啟動成功');
     }
 

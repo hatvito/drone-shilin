@@ -123,13 +123,13 @@ window.ShilinDrone = window.ShilinDrone || {};
             dirLight.intensity = 0.95;
             dirLight.position.set(-420, 195, 140);
         } else if (mode === 'night') {
-            if (scene.background) scene.background.setHex(0x090d16);
-            if (scene.fog && scene.fog.color) scene.fog.color.setHex(0x090d16);
-            if (renderer) renderer.toneMappingExposure = 0.95;
-            ambientLight.intensity = 0.35;
-            hemiLight.intensity = 0.25;
-            dirLight.color.setHex(0x60a5fa);
-            dirLight.intensity = 0.45;
+            if (scene.background) scene.background.setHex(0x0f172a);
+            if (scene.fog && scene.fog.color) scene.fog.color.setHex(0x0f172a);
+            if (renderer) renderer.toneMappingExposure = 1.15;
+            ambientLight.intensity = 0.75;
+            hemiLight.intensity = 0.55;
+            dirLight.color.setHex(0x93c5fd);
+            dirLight.intensity = 0.85;
             dirLight.position.set(140, 380, -200);
         }
     }
