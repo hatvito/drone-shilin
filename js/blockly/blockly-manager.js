@@ -69,6 +69,18 @@ window.ShilinDrone = window.ShilinDrone || {};
         const flyout = (workspace.getFlyout ? workspace.getFlyout() : null) || (workspace.getToolbox && workspace.getToolbox().getFlyout ? workspace.getToolbox().getFlyout() : null);
         if (flyout) {
             flyout.autoClose = true;
+
+            const origHide = flyout.hide.bind(flyout);
+            flyout.hide = function() {
+                origHide();
+                syncFlyoutScrollbars();
+            };
+
+            const origSetVisible = flyout.setVisible.bind(flyout);
+            flyout.setVisible = function(visible) {
+                origSetVisible(visible);
+                syncFlyoutScrollbars();
+            };
         }
 
         // 6. 攔截 Toolbox 點擊：再次點擊同一分類即可取消選取並收回抽屜
@@ -81,10 +93,12 @@ window.ShilinDrone = window.ShilinDrone || {};
                     this.clearSelection();
                     const activeFlyout = this.getFlyout ? this.getFlyout() : this.flyout_;
                     if (activeFlyout) activeFlyout.hide();
+                    syncFlyoutScrollbars();
                     updateFlyoutCloseButton(false);
                     return;
                 }
                 origSetSelectedItem(item);
+                syncFlyoutScrollbars();
                 updateFlyoutCloseButton(item !== null);
             };
         }
@@ -112,6 +126,17 @@ window.ShilinDrone = window.ShilinDrone || {};
             }
         });
 
+        // 10. 監聽 DOM 變動，確保 Tailwind CSS 重置不會覆蓋 display="none"
+        const observer = new MutationObserver(() => {
+            syncFlyoutScrollbars();
+        });
+        observer.observe(container, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['display', 'style', 'class']
+        });
+
         // 響應視窗縮放
         window.addEventListener('resize', onWorkspaceResize);
 
@@ -120,6 +145,7 @@ window.ShilinDrone = window.ShilinDrone || {};
             if (workspace) {
                 Blockly.svgResize(workspace);
                 workspace.scrollCenter();
+                syncFlyoutScrollbars();
             }
         }, 120);
 
@@ -210,6 +236,25 @@ window.ShilinDrone = window.ShilinDrone || {};
         });
     }
 
+    // 同步並確保 Flyout 關閉時其垂直捲軸 (blocklyFlyoutScrollbar) 100% 隱藏消失
+    function syncFlyoutScrollbars() {
+        if (!workspace) return;
+        const toolbox = workspace.getToolbox ? workspace.getToolbox() : null;
+        const flyout = (toolbox && toolbox.getFlyout) ? toolbox.getFlyout() : (workspace.getFlyout ? workspace.getFlyout() : null);
+        const isFlyoutVisible = flyout && flyout.isVisible && flyout.isVisible();
+        const flyoutScrollbars = document.querySelectorAll('.blocklyFlyoutScrollbar');
+        flyoutScrollbars.forEach(sb => {
+            if (!isFlyoutVisible) {
+                sb.style.display = 'none';
+                sb.style.visibility = 'hidden';
+                sb.setAttribute('display', 'none');
+            } else {
+                sb.style.display = '';
+                sb.style.visibility = 'visible';
+            }
+        });
+    }
+
     // 收回積木抽屜與取消選取
     function closeFlyout() {
         if (!workspace) return;
@@ -221,6 +266,7 @@ window.ShilinDrone = window.ShilinDrone || {};
         if (flyout) {
             flyout.hide();
         }
+        syncFlyoutScrollbars();
         updateFlyoutCloseButton(false);
     }
 

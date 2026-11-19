@@ -89,6 +89,21 @@
     fill: #334155 !important;
 }
 
+/* 修復 Tailwind CSS reset (svg { display: block }) 覆蓋 SVG display="none" 屬性導致捲軸不消失的重大 Bug */
+svg[display="none"],
+g[display="none"],
+[display="none"] {
+    display: none !important;
+}
+
+.blocklyFlyoutScrollbar[display="none"],
+.blocklyScrollbar[display="none"],
+.blocklyScrollbarVertical[display="none"],
+.blocklyScrollbarHorizontal[display="none"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 .blocklyTreeLabel {
     font-family: 'Noto Sans TC', sans-serif !important;
     font-size: 11px !important;
