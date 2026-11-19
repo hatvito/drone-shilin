@@ -44,7 +44,11 @@ window.ShilinDrone = window.ShilinDrone || {};
         ns.State.activeMission = activeMission;
 
         if (activeMission && ns.MissionHazards && ns.MissionHazards.applyMissionEnvironment) {
-            ns.MissionHazards.applyMissionEnvironment(activeMission);
+            try {
+                ns.MissionHazards.applyMissionEnvironment(activeMission);
+            } catch (err) {
+                console.error('[MissionHazards] 載入關卡環境發生錯誤：', err);
+            }
         }
 
         const missionBadge = document.getElementById('current-mission-badge');

@@ -105,27 +105,27 @@ window.ShilinDrone = window.ShilinDrone || {};
         });
 
         if (mode === 'day') {
-            scene.background.setHex(0xdbeafe);
-            scene.fog.color.setHex(0xdbeafe);
-            renderer.toneMappingExposure = 1.05;
+            if (scene.background) scene.background.setHex(0xdbeafe);
+            if (scene.fog && scene.fog.color) scene.fog.color.setHex(0xdbeafe);
+            if (renderer) renderer.toneMappingExposure = 1.05;
             ambientLight.intensity = 0.65;
             hemiLight.intensity = 0.45;
             dirLight.color.setHex(0xfffaed);
             dirLight.intensity = 0.85;
             dirLight.position.set(240, 430, 250);
         } else if (mode === 'sunset') {
-            scene.background.setHex(0xfb923c);
-            scene.fog.color.setHex(0xfb923c);
-            renderer.toneMappingExposure = 1.0;
+            if (scene.background) scene.background.setHex(0xfb923c);
+            if (scene.fog && scene.fog.color) scene.fog.color.setHex(0xfb923c);
+            if (renderer) renderer.toneMappingExposure = 1.0;
             ambientLight.intensity = 0.52;
             hemiLight.intensity = 0.35;
             dirLight.color.setHex(0xf97316);
             dirLight.intensity = 0.95;
             dirLight.position.set(-420, 195, 140);
         } else if (mode === 'night') {
-            scene.background.setHex(0x090d16);
-            scene.fog.color.setHex(0x090d16);
-            renderer.toneMappingExposure = 0.95;
+            if (scene.background) scene.background.setHex(0x090d16);
+            if (scene.fog && scene.fog.color) scene.fog.color.setHex(0x090d16);
+            if (renderer) renderer.toneMappingExposure = 0.95;
             ambientLight.intensity = 0.35;
             hemiLight.intensity = 0.25;
             dirLight.color.setHex(0x60a5fa);

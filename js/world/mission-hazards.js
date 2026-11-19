@@ -27,10 +27,11 @@ window.ShilinDrone = window.ShilinDrone || {};
         const scene = ns.Scene.getScene();
 
         // 1. 濃霧天候控制
+        const skyColor = missionConfig.weather === 'sunset' ? 0xfb923c : (missionConfig.weather === 'night' ? 0x090d16 : 0xdbeafe);
         if (missionConfig.hasFog) {
             scene.fog = new THREE.FogExp2(0x94a3b8, 0.024);
         } else {
-            scene.fog = null;
+            scene.fog = new THREE.FogExp2(skyColor, 0.00032);
         }
 
         // 2. 高空細電線網生成
@@ -58,7 +59,7 @@ window.ShilinDrone = window.ShilinDrone || {};
 
     function clearHazards() {
         const scene = ns.Scene.getScene();
-        if (scene) scene.fog = null;
+        if (scene) scene.fog = new THREE.FogExp2(0xdbeafe, 0.00032);
 
         hazardGroup.clear();
         flockBirds.length = 0;
