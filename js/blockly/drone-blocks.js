@@ -187,6 +187,228 @@ window.ShilinDrone = window.ShilinDrone || {};
             }
         };
 
+        // ====================================================================
+        // 🔋 動力電池與節能巡航積木
+        // ====================================================================
+        // 12. 讀取目前剩餘電量百分比
+        Blockly.Blocks['drone_get_battery'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔋 目前剩餘電量百分比 (%)");
+                this.setOutput(true, "Number");
+                this.setColour(140);
+                this.setTooltip("回傳無人機目前鋰電池剩餘百分比 (100% ~ 0%)，電量耗盡時將失事墜毀。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 13. 電池處於低電量警戒判定
+        Blockly.Blocks['drone_is_low_battery'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("⚠️ 電池處於低電量 (低於")
+                    .appendField(new Blockly.FieldNumber(25, 5, 50, 5), "THRESHOLD")
+                    .appendField("%)");
+                this.setOutput(true, "Boolean");
+                this.setColour(140);
+                this.setTooltip("判斷當前電池是否已進入低電量警戒區，可用於觸發節能巡航或提前返航下降。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 14. 啟用節能巡航省電模式
+        Blockly.Blocks['drone_enable_eco_mode'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🌿 啟用節能巡航模式 (限速")
+                    .appendField(new Blockly.FieldNumber(9.0, 5.0, 12.0, 0.5), "SPEED")
+                    .appendField("m/s, 降低 30% 耗電)");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(140);
+                this.setTooltip("限制無人機最高推力，使動力電池每秒消耗速率減少 30%，大幅增加滯空時間！");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // ⚖️ SWaP 負重與配額檢視積木
+        // ====================================================================
+        // 15. 讀取目前總配重
+        Blockly.Blocks['drone_get_total_payload'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("⚖️ 無人機目前總配重 (含感測器) (g)");
+                this.setOutput(true, "Number");
+                this.setColour(45);
+                this.setTooltip("回傳機身基本空重加上所有啟用感測器的總重量 (公克)。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 16. 讀取當前關卡負重配額上限
+        Blockly.Blocks['drone_get_payload_limit'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📦 當前任務【負重上限】(g)");
+                this.setOutput(true, "Number");
+                this.setColour(45);
+                this.setTooltip("回傳本關卡最大允許起飛總重量，若超重將大幅增加轉彎慣性、煞車距離與電池消耗。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // 👁️ 雙目立體視覺感測器積木 (抓高空細電線)
+        // ====================================================================
+        // 17. 雙目立體視覺探測細電線距離
+        Blockly.Blocks['drone_stereo_detect_wire'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("👁️ 雙目視覺探測前方細電纜距離 (基線")
+                    .appendField(new Blockly.FieldNumber(15, 8, 30, 1), "BASELINE")
+                    .appendField("cm, 射程")
+                    .appendField(new Blockly.FieldNumber(20, 5, 40, 5), "RANGE")
+                    .appendField("m)");
+                this.setOutput(true, "Number");
+                this.setColour(290);
+                this.setTooltip("利用雙鏡頭基線視差深度矩陣，精準探測水平光達容易穿透漏抓的街道細電纜與天線鋼索。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 18. 雙目細電線危急預警
+        Blockly.Blocks['drone_stereo_wire_warning'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("⚡ 雙目預警：前方")
+                    .appendField(new Blockly.FieldNumber(12, 3, 25, 1), "DISTANCE")
+                    .appendField("m 內存在高壓細電纜");
+                this.setOutput(true, "Boolean");
+                this.setColour(290);
+                this.setTooltip("當前方特定距離內偵測到懸空細電纜時回傳 true，供條件式進行緊急翻越或爬升決策。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // 📡 4D 毫米波都卜勒雷達積木 (穿透濃霧抓動態飛鳥)
+        // ====================================================================
+        // 19. 4D 毫米波雷達探測動態物體距離
+        Blockly.Blocks['drone_radar_detect_moving'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📡 4D 毫米波雷達探測動態飛鳥距離 (速度 >")
+                    .appendField(new Blockly.FieldNumber(2.0, 0.5, 8.0, 0.5), "MIN_SPEED")
+                    .appendField("m/s)");
+                this.setOutput(true, "Number");
+                this.setColour(190);
+                this.setTooltip("發射毫米波雷達射頻，完全無視濃霧阻隔，利用都卜勒頻移精準偵測前方逼近的動態物體（如低空飛鳥）相對距離。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 20. 毫米波雷達飛鳥逼近預警
+        Blockly.Blocks['drone_radar_has_incoming_threat'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🐦 毫米波雷達預警：")
+                    .appendField(new Blockly.FieldNumber(15, 5, 30, 2), "DISTANCE")
+                    .appendField("m 內有飛鳥高速迎面逼近");
+                this.setOutput(true, "Boolean");
+                this.setColour(190);
+                this.setTooltip("判定前方特定距離內是否有迎面而來的動態飛鳥威脅。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // 📐 下視 ToF 測距儀積木 (斜頂傾角降落與離地淨高)
+        // ====================================================================
+        // 21. 下視 ToF 探測著陸表面斜率角度
+        Blockly.Blocks['drone_tof_surface_slope'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📐 下視 ToF 探測著陸屋頂【傾斜角度】(度)");
+                this.setOutput(true, "Number");
+                this.setColour(30);
+                this.setTooltip("測量無人機正下方目標著陸面的坡度角。若降落在大於 15° 的傾斜鐵皮屋頂上，直接關閉馬達將導致側翻墜樓！");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 22. 下視 ToF 精準離地淨高 (AGL)
+        Blockly.Blocks['drone_tof_ground_clearance'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📏 下視 ToF 精準離地淨高 (AGL m)");
+                this.setOutput(true, "Number");
+                this.setColour(30);
+                this.setTooltip("垂直向下發射紅外雷射，精準量測無人機與下方建築屋頂或地面的實際垂直距離。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // 🔊 四周近距超音波氣墊陣列積木 (老街狹巷反彈)
+        // ====================================================================
+        // 23. 四周超音波近距氣墊自動反彈力場
+        Blockly.Blocks['drone_ultrasonic_cushion'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔊 啟用四周超音波氣墊反彈 (緩衝距")
+                    .appendField(new Blockly.FieldNumber(2.5, 1.0, 5.0, 0.5), "DISTANCE")
+                    .appendField("m, 推力")
+                    .appendField(new Blockly.FieldNumber(4.0, 1.0, 8.0, 0.5), "FORCE")
+                    .appendField(")");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(220);
+                this.setTooltip("模擬四周近距高頻超音波聲納，當被穿堂側風吹向狹窄巷弄牆面時，自動產生強烈反彈推力彈開！");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 24. 四周超音波探測最近夾縫牆面距離
+        Blockly.Blocks['drone_ultrasonic_min_distance'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔊 超音波探測周圍【最近狹巷牆面距離】(m)");
+                this.setOutput(true, "Number");
+                this.setColour(220);
+                this.setTooltip("回傳無人機四周 5 米以內與兩側街屋牆面的最短距離。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // ====================================================================
+        // 🌀 單眼光流與抗風補償積木
+        // ====================================================================
+        // 25. 光流估算側向風切漂移速度
+        Blockly.Blocks['drone_optical_flow_drift'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🌀 單眼光流估算【側向風切漂移速度】(m/s)");
+                this.setOutput(true, "Number");
+                this.setColour(240);
+                this.setTooltip("透過地面紋理運動視差，精確估算無人機被穿堂側風推移的側向漂移速率。");
+                this.setHelpUrl("");
+            }
+        };
+
+        // 26. 光流自動抗風補償
+        Blockly.Blocks['drone_optical_flow_wind_compensation'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🌀 啟用光流自動抗風補償 (抵抗穿堂風偏推)");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(240);
+                this.setTooltip("根據光流估算的側向風切漂移量，自動向反方向注入等量平衡推力，抵消側風干擾。");
+                this.setHelpUrl("");
+            }
+        };
+
         console.log('[Blockly] 無人機自訂積木庫註冊完成');
     }
 

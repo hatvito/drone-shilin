@@ -156,7 +156,10 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 0. 電池電量動態衰減計算 (SWaP 約束)
         const activeMission = ns.State.activeMission;
         const batteryLimit = (activeMission && activeMission.batteryCapacitySec) || 55.0;
-        flightState.battery = Math.max(0, 100 - (flightState.flightTime / batteryLimit) * 100);
+        // 若學生控制器啟用節能省電模式 (ecoMode)，電池耗電減緩 30% (滯空時間延長)
+        const drainFactor = (studentControllerInstance && studentControllerInstance.ecoMode) ? 0.70 : 1.0;
+        const effectiveLimit = batteryLimit / drainFactor;
+        flightState.battery = Math.max(0, 100 - (flightState.flightTime / effectiveLimit) * 100);
 
         if (flightState.battery <= 0) {
             simSettings.isSimulating = false;

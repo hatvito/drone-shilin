@@ -35,8 +35,44 @@ window.ShilinDrone = window.ShilinDrone || {};
             },
             {
                 kind: 'category',
-                name: '⚡ 邏輯條件',
+                name: '👁️ 雙目與毫米波',
+                colour: '#a855f7',
+                contents: [
+                    { kind: 'block', type: 'drone_stereo_detect_wire' },
+                    { kind: 'block', type: 'drone_stereo_wire_warning' },
+                    { kind: 'block', type: 'drone_radar_detect_moving' },
+                    { kind: 'block', type: 'drone_radar_has_incoming_threat' }
+                ]
+            },
+            {
+                kind: 'category',
+                name: '📐 坡度與超音波',
+                colour: '#f97316',
+                contents: [
+                    { kind: 'block', type: 'drone_tof_surface_slope' },
+                    { kind: 'block', type: 'drone_tof_ground_clearance' },
+                    { kind: 'block', type: 'drone_ultrasonic_cushion' },
+                    { kind: 'block', type: 'drone_ultrasonic_min_distance' },
+                    { kind: 'block', type: 'drone_optical_flow_drift' },
+                    { kind: 'block', type: 'drone_optical_flow_wind_compensation' }
+                ]
+            },
+            {
+                kind: 'category',
+                name: '🔋 電池與負重',
                 colour: '#10b981',
+                contents: [
+                    { kind: 'block', type: 'drone_get_battery' },
+                    { kind: 'block', type: 'drone_is_low_battery' },
+                    { kind: 'block', type: 'drone_enable_eco_mode' },
+                    { kind: 'block', type: 'drone_get_total_payload' },
+                    { kind: 'block', type: 'drone_get_payload_limit' }
+                ]
+            },
+            {
+                kind: 'category',
+                name: '⚡ 邏輯條件',
+                colour: '#14b8a6',
                 contents: [
                     { kind: 'block', type: 'controls_if' },
                     { kind: 'block', type: 'logic_compare' },
@@ -48,7 +84,7 @@ window.ShilinDrone = window.ShilinDrone || {};
             {
                 kind: 'category',
                 name: '📐 數值運算',
-                colour: '#8b5cf6',
+                colour: '#6366f1',
                 contents: [
                     { kind: 'block', type: 'math_number' },
                     { kind: 'block', type: 'math_arithmetic' },
