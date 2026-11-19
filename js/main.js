@@ -43,7 +43,12 @@ window.ShilinDrone = window.ShilinDrone || {};
             ns.Leaderboard.initLeaderboard();
         }
 
-        // 7. 設定使用者點擊互動
+        // 7. 初始化 Blockly 視覺化積木系統 (若在 blockly.html 模式)
+        if (ns.BlocklyManager && ns.BlocklyManager.initBlocklySystem) {
+            ns.BlocklyManager.initBlocklySystem();
+        }
+
+        // 8. 設定使用者點擊互動
         ns.Interaction.setupInteraction();
 
         // 8. 載入預設程式碼與 AI 提示詞

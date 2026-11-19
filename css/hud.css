@@ -62,3 +62,33 @@
 [data-tooltip]:hover::after {
     opacity: 1;
 }
+
+/* Blockly Custom Dark Tweaks */
+.blocklyToolboxDiv {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.blocklyFlyoutBackground {
+    fill: rgba(15, 23, 42, 0.94) !important;
+    fill-opacity: 0.95 !important;
+}
+
+.blocklyMainBackground {
+    stroke-width: 0 !important;
+}
+
+.blocklyTreeLabel {
+    font-family: 'Noto Sans TC', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #cbd5e1 !important;
+}
+
+.blocklyTreeRow:hover {
+    background-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+.blocklyTreeSelected .blocklyTreeLabel {
+    color: #38bdf8 !important;
+}
