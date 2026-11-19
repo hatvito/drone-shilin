@@ -1,5 +1,5 @@
 // ============================================================================
-// js/simulation/flight-engine.js: 演算法動態編譯沙盒、飛行物理步進與碰撞/勝利判決
+// js/simulation/flight-engine.js: 演算法動態編譯沙盒、飛行物理步進、SWaP電量與特種碰撞判決
 // ============================================================================
 window.ShilinDrone = window.ShilinDrone || {};
 
@@ -115,6 +115,7 @@ window.ShilinDrone = window.ShilinDrone || {};
             flightState.vel.set(0, 0, 0);
             flightState.yaw = 0;
             flightState.flightTime = 0;
+            flightState.battery = 100;
             flightState.initialDistance = Math.max(1, flightState.pos.distanceTo(targetHelipad.pos));
             flightState.remainingDistance = flightState.initialDistance;
             flightState.progress = 0;
@@ -152,6 +153,28 @@ window.ShilinDrone = window.ShilinDrone || {};
         const dt = rawDt * (simSettings.simSpeed || 1.0);
         flightState.flightTime += dt;
 
+        // 0. 電池電量動態衰減計算 (SWaP 約束)
+        const activeMission = ns.State.activeMission;
+        const batteryLimit = (activeMission && activeMission.batteryCapacitySec) || 55.0;
+        flightState.battery = Math.max(0, 100 - (flightState.flightTime / batteryLimit) * 100);
+
+        if (flightState.battery <= 0) {
+            simSettings.isSimulating = false;
+            flightState.status = 'CRASHED';
+            pauseFlightSimulation();
+
+            if (ns.Audio && ns.Audio.playCrashSound) ns.Audio.playCrashSound();
+
+            const statusBadge = document.getElementById('flight-status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = '電量耗盡';
+                statusBadge.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
+            }
+
+            alert(`⚠️ 無人機任務失敗！\n原因：動力電池電量耗盡 (0%)，迫降失事墜毀！\n請優化航線規劃、提高巡航速度或減輕感測器功耗負擔。`);
+            return;
+        }
+
         // 1. 執行 16 向虛擬光達測距並同步視覺化
         const lidarData = query16DirectionLiDAR(flightState.pos);
         updateLidarVisuals(flightState.pos, lidarData);
@@ -187,6 +210,14 @@ window.ShilinDrone = window.ShilinDrone || {};
             pauseFlightSimulation();
             alert('演算法運行異常：\n' + e.message);
             return;
+        }
+
+        // 穿堂側風環境推力注入
+        if (ns.MissionHazards && ns.MissionHazards.getCrosswindVector) {
+            const wind = ns.MissionHazards.getCrosswindVector(flightState.pos, flightState.flightTime);
+            if (wind) {
+                flightState.vel.addScaledVector(wind, dt * 1.5);
+            }
         }
 
         // 動態調整無人機螺旋槳馬達音調
@@ -250,6 +281,24 @@ window.ShilinDrone = window.ShilinDrone || {};
 
             // 7. 到達終點停機坪判決 (中心距離 < 1.5m)
             if (dist < 1.5) {
+                // 檢查是否處於斜面鐵皮屋頂 (特種降落考驗)
+                if (activeMission && activeMission.hasSlopedRoof && ns.MissionHazards && ns.MissionHazards.getSurfaceSlopeAngle) {
+                    const slope = ns.MissionHazards.getSurfaceSlopeAngle(flightState.pos.x, flightState.pos.z);
+                    if (slope > 15.0) {
+                        simSettings.isSimulating = false;
+                        flightState.status = 'CRASHED';
+                        pauseFlightSimulation();
+                        if (ns.Audio && ns.Audio.playCrashSound) ns.Audio.playCrashSound();
+                        const statusBadge = document.getElementById('flight-status-badge');
+                        if (statusBadge) {
+                            statusBadge.textContent = '著陸翻覆';
+                            statusBadge.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
+                        }
+                        alert(`⚠️ 著陸翻覆失事！\n原因：目標停機坪處於 ${slope}° 傾斜鐵皮斜頂！\n直接關閉馬達導致無人機失衡側翻墜樓！\n提示：請利用下視 ToF 感測器判斷坡度並修正著陸位置。`);
+                        return;
+                    }
+                }
+
                 simSettings.isSimulating = false;
                 flightState.status = 'SUCCESS';
                 flightState.progress = 100;

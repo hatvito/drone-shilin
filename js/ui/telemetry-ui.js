@@ -30,6 +30,15 @@ window.ShilinDrone = window.ShilinDrone || {};
         }
         if (barInner) barInner.style.width = `${flightState.progress}%`;
         if (timeEl) timeEl.textContent = `${flightState.flightTime.toFixed(1)} s`;
+
+        const batteryEl = document.getElementById('tele-battery');
+        if (batteryEl) {
+            const b = flightState.battery !== undefined ? flightState.battery : 100;
+            batteryEl.textContent = `${b.toFixed(0)}%`;
+            batteryEl.className = b < 20
+                ? 'text-xs font-black text-rose-500 code-font animate-pulse'
+                : (b < 45 ? 'text-xs font-black text-amber-400 code-font' : 'text-xs font-black text-emerald-400 code-font');
+        }
     }
 
     function exportBlackboxJSON() {

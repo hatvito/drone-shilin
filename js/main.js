@@ -1,5 +1,5 @@
 // ============================================================================
-// js/main.js: 台北士林無人機避障挑戰賽 - 主程式進入點與即時渲染迴圈
+// js/main.js: 台北士林無人機避障挑戰賽 - 主程式進入點、戰術任務環境載入與渲染迴圈
 // ============================================================================
 window.ShilinDrone = window.ShilinDrone || {};
 
@@ -35,7 +35,25 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 5. 初始化任務起訖點停機坪
         ns.MissionManager.applyMissionSeed();
 
-        // 6. 初始化 3D 霓虹幽靈無人機與 Firebase 雲端排行榜
+        // 6. 解析當前戰術關卡任務 (URL 參數：?mission=m1_speedrun)
+        const urlParams = new URLSearchParams(window.location.search);
+        const missionId = urlParams.get('mission') || 'm1_speedrun';
+        const activeMission = (ns.MissionData && ns.MissionData.getMissionById)
+            ? ns.MissionData.getMissionById(missionId)
+            : null;
+        ns.State.activeMission = activeMission;
+
+        if (activeMission && ns.MissionHazards && ns.MissionHazards.applyMissionEnvironment) {
+            ns.MissionHazards.applyMissionEnvironment(activeMission);
+        }
+
+        const missionBadge = document.getElementById('current-mission-badge');
+        if (missionBadge && activeMission) {
+            missionBadge.innerHTML = `<span>${activeMission.badge}</span> <span class="font-black text-white">${activeMission.title}</span>`;
+            missionBadge.title = `當前戰術關卡：${activeMission.title} · 點擊切換任務`;
+        }
+
+        // 7. 初始化 3D 霓虹幽靈無人機與 Firebase 雲端排行榜
         if (ns.GhostDrone && ns.GhostDrone.initGhostDrone) {
             ns.GhostDrone.initGhostDrone();
         }
@@ -43,28 +61,28 @@ window.ShilinDrone = window.ShilinDrone || {};
             ns.Leaderboard.initLeaderboard();
         }
 
-        // 7. 初始化 Blockly 視覺化積木系統 (若在 blockly.html 模式)
+        // 8. 初始化 Blockly 視覺化積木系統 (若在 blockly.html 模式)
         if (ns.BlocklyManager && ns.BlocklyManager.initBlocklySystem) {
             ns.BlocklyManager.initBlocklySystem();
         }
 
-        // 8. 設定使用者點擊互動
+        // 9. 設定使用者點擊互動
         ns.Interaction.setupInteraction();
 
-        // 8. 載入預設程式碼與 AI 提示詞
+        // 10. 載入預設程式碼與 AI 提示詞
         const codeEditor = document.getElementById('code-editor');
         if (codeEditor) codeEditor.value = ns.DefaultCode.DEFAULT_CODE;
 
         const promptText = document.getElementById('ai-prompt-text');
         if (promptText) promptText.value = ns.DefaultCode.AI_PROMPT_TEXT;
 
-        // 9. 更新頂部街廓建築統計標籤
+        // 11. 更新頂部街廓建築統計標籤
         const statsBadge = document.getElementById('stats-badge');
         if (statsBadge) {
             statsBadge.textContent = `${ns.State.stats.totalBuildingCount.toLocaleString()} 棟多樣化建築 · ${ns.State.stats.totalRoadSegments} 條彎曲道路/水岸`;
         }
 
-        // 10. 啟動主渲染循環
+        // 12. 啟動主渲染循環
         animate();
     });
 
@@ -83,6 +101,11 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 幽靈車即時同步重播步進與標籤更新
         if (ns.GhostDrone && ns.GhostDrone.updateGhostDrone) {
             ns.GhostDrone.updateGhostDrone(dt, ns.State.flightState.flightTime, ns.State.simSettings.isSimulating);
+        }
+
+        // 特種任務動態障礙更新 (如飛鳥拍翅)
+        if (ns.MissionHazards && ns.MissionHazards.updateHazards) {
+            ns.MissionHazards.updateHazards(dt, elapsed);
         }
 
         // 兒童新樂園摩天輪與旋轉木馬旋轉

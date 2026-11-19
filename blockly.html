@@ -42,6 +42,16 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <!-- 任務大廳指揮中心按鈕 -->
+            <a href="missions.html" class="glass-panel px-3 py-1.5 rounded-xl shadow-xl hover:bg-slate-800 text-amber-300 font-black transition flex items-center gap-1.5 text-xs border border-amber-500/40" title="前往任務指揮中心挑選 6 大特種戰術關卡">
+                <span>🎯 任務大廳</span>
+            </a>
+
+            <!-- 當前戰術關卡標籤 -->
+            <a href="missions.html" id="current-mission-badge" class="glass-panel px-2.5 py-1.5 rounded-xl shadow-xl hover:bg-slate-800 text-slate-300 font-bold transition flex items-center gap-1 text-xs border border-slate-700/60" title="點擊切換任務關卡">
+                <span>☀️</span> <span class="font-black text-white">晴空直線飆速賽</span>
+            </a>
+
             <!-- 切換至 JavaScript 代碼版按鈕 -->
             <a href="index.html" class="glass-panel px-3 py-1.5 rounded-xl shadow-xl hover:bg-slate-800 text-cyan-300 font-black transition flex items-center gap-1.5 text-xs border border-cyan-500/40" title="切換至 JavaScript 專業文字代碼版">
                 <span>💻 切換代碼版 (JavaScript)</span>
@@ -190,7 +200,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-1.5 text-center mt-1">
+            <div class="grid grid-cols-5 gap-1.5 text-center mt-1">
                 <div class="tele-card p-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
                     <div class="text-[10px] text-slate-400">剩餘距離</div>
                     <div id="tele-dist" class="text-xs font-black text-white code-font">-- m</div>
@@ -204,7 +214,11 @@
                     <div id="tele-alt" class="text-xs font-black text-amber-300 code-font">-- m</div>
                 </div>
                 <div class="tele-card p-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                    <div class="text-[10px] text-slate-400">光達近距警戒</div>
+                    <div class="text-[10px] text-slate-400">動力電池</div>
+                    <div id="tele-battery" class="text-xs font-black text-emerald-400 code-font">100%</div>
+                </div>
+                <div class="tele-card p-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                    <div class="text-[10px] text-slate-400">光達警戒</div>
                     <div id="tele-lidar-warn" class="text-xs font-black text-cyan-400 code-font">安全</div>
                 </div>
             </div>
@@ -433,7 +447,9 @@
     <script src="js/drone/lidar-visualizer.js"></script>
     <script src="js/drone/ghost-drone.js"></script>
 
-    <!-- 5. 任務系統與標籤 -->
+    <!-- 5. 戰術關卡任務資料與環境障礙生成器 -->
+    <script src="js/mission/mission-data.js"></script>
+    <script src="js/world/mission-hazards.js"></script>
     <script src="js/mission/labels.js"></script>
     <script src="js/mission/mission-manager.js"></script>
 

@@ -10,7 +10,9 @@
 
 ```text
 d:\shilindrone\
-├── index.html                     # 現代化響應式 UI 與 3D 渲染主畫布
+├── index.html                     # 現代化 JavaScript 專業代碼版與 3D 渲染主畫布
+├── blockly.html                   # Scratch 積木圖形化拖拉編程版 (Google Blockly)
+├── missions.html                  # 任務指揮中心 · 6 大特種戰術關卡挑選大廳
 ├── README.md                      # 專案架構與維護指南
 │
 ├── css/
@@ -39,25 +41,37 @@ d:\shilindrone\
     │   ├── landmarks.js           # 重大地標 (金仁寶、NVIDIA、兒童新樂園、科教館、天文館、士林高商12棟、新光醫院)
     │   ├── urban-districts.js     # 五大密集住宅街廓 (文林北路、捷運東側、美崙街、基河路豪宅群)
     │   ├── trees.js               # GPU InstancedMesh 數千棵植栽 (含水域避開安全過濾)
-    │   └── traffic.js             # 台北捷運紅線列車動態行駛與多車道動態車流
+    │   ├── traffic.js             # 台北捷運紅線列車動態行駛與多車道動態車流
+    │   └── mission-hazards.js     # 🌪️ 戰術環境生成器 (濃霧、高空電網、斜頂、飛鳥群、穿堂側風)
     │
     ├── drone/                     # 飛行機體與物理
     │   ├── drone-model.js         # 3D 四軸無人機模型、發光頂標與旋轉螺旋槳
     │   ├── trail.js               # 3D 實體粗圓管航跡 (TubeGeometry) 與高度標記球
     │   ├── physics.js             # AABB 物理包圍盒、16向虛擬光達與 CCD 連續碰撞檢測
-    │   └── lidar-visualizer.js    # 📡 即時 3D 光達雷射光束視覺化 (演算法除錯神器)
+    │   ├── lidar-visualizer.js    # 📡 即時 3D 光達雷射光束視覺化 (演算法除錯神器)
+    │   └── ghost-drone.js         # 👻 3D 霓虹半透明幽靈車與全場首名飛行重播
     │
     ├── mission/                   # 任務機制
     │   ├── labels.js              # 2D HTML 世界地標標籤與任務起訖點徽章投影
+    │   ├── mission-data.js        # 🎯 6 大特種作戰任務環境設定與 SWaP 參數庫
     │   └── mission-manager.js     # 任務種子碼 (0000~9999)、百米導引光柱與停機坪
+    │
+    ├── blockly/                   # 🧩 Google Blockly 積木視覺化編程模組
+    │   ├── drone-blocks.js        # 自訂無人機積木 (巡航速、定高、光達排斥、測距、轉向避碰)
+    │   ├── drone-generators.js    # 即時編譯為標準 StudentController 類別之 JS 產生器
+    │   ├── drone-toolbox.js       # 積木工具箱結構與預設避障積木範本 XML
+    │   └── blockly-manager.js     # 工作區注入、雙向代碼同動與代碼預覽彈窗
     │
     ├── simulation/                # 演算沙盒與音效
     │   ├── default-code.js        # 預設 StudentController 避障範本與 AI 提示詞
     │   ├── audio.js               # 🔊 Web Audio API 音效合成器 (引擎聲、警報、墜毀、獲勝)
-    │   └── flight-engine.js       # 演算法動態編譯執行、飛行物理步進與通關判決
+    │   └── flight-engine.js       # 演算法動態編譯執行、SWaP電池消耗、側風注入與失事/通關判決
+    │
+    ├── network/                   # 雲端網路
+    │   └── leaderboard.js         # 🏆 Firebase Realtime Database 雲端排行榜與幽靈車同步
     │
     ├── ui/                        # 使用者介面互動
-    │   ├── telemetry-ui.js        # 儀表板刷新 (剩餘距離、達成率、高度) 與黑盒子 JSON 匯出
+    │   ├── telemetry-ui.js        # 儀表板刷新 (剩餘距離、達成率、高度、動力電池) 與黑盒子 JSON
     │   ├── interaction.js         # 3D 建築點擊射線檢測與右下角屬性檢視面板
     │   └── ui-controller.js       # 按鈕事件綁定、倍速 (1x/2x/4x)、視角切換與輔助工具
     │
@@ -81,3 +95,20 @@ d:\shilindrone\
    - 擬真屋頂五彩加蓋與設備：六色經典浪板（台綠、深綠、亮藍、酒紅、鍍鋅銀、草綠）、電梯機房與不銹鋼雙併立式/臥式水塔。
    - 齒狀天際線高低差：相鄰街屋依建造年代隨機產生不同層數與高度（8m~42m），忠實呈現台灣都會巷弄高低錯落的空域挑戰。
 10. **GPU InstancedMesh 零負擔合批優化**：數千座屋頂鐵皮加蓋與水塔全面採用合批實例化渲染（僅耗費 7 個 Draw Calls），即便場景容納超過 2,260 棟多邊形立體建築與實體物理包圍盒，仍能穩定維持 60 FPS 流暢度。
+11. **Scratch 積木圖形化拖拉編程版 (`blockly.html`)**：整合 Google Blockly 深色主題畫布，學生無需手打 JavaScript，即可透過直覺的中文方塊拼裝巡航速度、高度鎖定、16向光達環周排斥力場、危急減速與方向偏轉，並支援即時編譯與「查看/複製 JavaScript 代碼」。
+12. **大視窗全螢幕代碼編輯器 (`#code-modal`)**：代碼版 (`index.html`) 具備一鍵展開全螢幕編輯器彈窗，支援 Tab 鍵縮排、`Ctrl+Enter` 立即起飛、常用避障演算法片段快速插入與動態字級放大縮小，大幅改善側邊欄閱讀體驗。
+13. **任務指揮中心關卡系統 (`missions.html`)**：
+    - 提供 6 大特種戰術關卡：晴空直線飆速、巷弄穿堂側風、斜頂違建與水塔迷宮、高空電纜與電線桿、濃霧與低空飛鳥群、無盡自由沙盒。
+    - 支援「🧩 積木出征」與「💻 代碼出征」一鍵帶參啟動 (`?mission=...`)。
+14. **動態 3D 特種環境障礙生成器 (`mission-hazards.js`)**：
+    - 體積濃霧 (`scene.fog`)：遮蔽遠方視距，考驗近距主動光達與都卜勒雷達。
+    - 街道電線桿與懸空 3D 電纜：自訂物理碰撞包圍盒，嚴防低空高速掛勾失事。
+    - 18° 傾斜鐵皮屋頂：著陸角度判斷，未修正坡度即迫降將導致翻覆側翻墜樓。
+    - 低空拍翅飛鳥群：沿街道兩側低空盤旋之動態障礙物。
+    - 穿堂側風物理推力：文林路與美崙街風口週期性風切推移無人機。
+15. **真實航太 SWaP 電池動力約束**：
+    - 動態電池電量衰減（0% 立即迫降失事）。
+    - 負重上限限制（防止過度盲目配置全部感測器），訓練真實工程權衡思維。
+16. **Firebase 雲端即時排行榜與 3D 霓虹幽靈領跑車 (`leaderboard.js` & `ghost-drone.js`)**：
+    - 跨設備即時記錄各考題種子碼之全場前十傑成績與平均航速。
+    - 首名完賽者之 3D 飛行軌跡將自動被捕捉並於場景中投射為半透明霓虹幽靈車，同場伴飛示範！
