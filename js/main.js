@@ -9,31 +9,39 @@ window.ShilinDrone = window.ShilinDrone || {};
     const clock = new THREE.Clock();
 
     window.addEventListener('load', () => {
-        // 1. 初始化種子與材質庫
-        ns.Config.resetMapSeed(1337);
-        ns.Materials.initMaterials();
+        // 1. 初始化種子與材質庫 (具備 CDN 容錯保護)
+        if (ns.Config && ns.Config.resetMapSeed) {
+            ns.Config.resetMapSeed(1337);
+        }
+        if (ns.Materials && ns.Materials.initMaterials) {
+            ns.Materials.initMaterials();
+        } else {
+            console.warn('[Main] ns.Materials 尚未就緒，已套用安全防護模式');
+        }
 
         // 2. 初始化 Three.js 核心場景與光源
-        ns.Scene.initScene('canvas-container');
+        if (ns.Scene && ns.Scene.initScene) {
+            ns.Scene.initScene('canvas-container');
+        }
 
         // 3. 依序建構真實地理環境
-        ns.Ground.buildCurvedGroundCanvasMap();
-        ns.Waterways.buildOrganicRiversAndLevees();
-        ns.Parks.buildParksWetlandsAndCurvedPaths();
-        ns.Roads.buildRealisticCurvedRoadNetwork();
-        ns.Landmarks.buildLandmarks();
-        ns.UrbanDistricts.buildUrbanDistricts();
-        ns.Trees.buildRichTreesAndBusStation();
-        ns.Traffic.buildTrafficSystem();
+        if (ns.Ground && ns.Ground.buildCurvedGroundCanvasMap) ns.Ground.buildCurvedGroundCanvasMap();
+        if (ns.Waterways && ns.Waterways.buildOrganicRiversAndLevees) ns.Waterways.buildOrganicRiversAndLevees();
+        if (ns.Parks && ns.Parks.buildParksWetlandsAndCurvedPaths) ns.Parks.buildParksWetlandsAndCurvedPaths();
+        if (ns.Roads && ns.Roads.buildRealisticCurvedRoadNetwork) ns.Roads.buildRealisticCurvedRoadNetwork();
+        if (ns.Landmarks && ns.Landmarks.buildLandmarks) ns.Landmarks.buildLandmarks();
+        if (ns.UrbanDistricts && ns.UrbanDistricts.buildUrbanDistricts) ns.UrbanDistricts.buildUrbanDistricts();
+        if (ns.Trees && ns.Trees.buildRichTreesAndBusStation) ns.Trees.buildRichTreesAndBusStation();
+        if (ns.Traffic && ns.Traffic.buildTrafficSystem) ns.Traffic.buildTrafficSystem();
 
         // 4. 建立穿梭機實體與物理感測器
-        ns.DroneModel.createDroneEntity();
-        ns.Trail.initTrail();
-        ns.LidarVisualizer.initLidarVisualizer();
-        ns.Physics.buildPhysicsBoundingBoxes();
+        if (ns.DroneModel && ns.DroneModel.createDroneEntity) ns.DroneModel.createDroneEntity();
+        if (ns.Trail && ns.Trail.initTrail) ns.Trail.initTrail();
+        if (ns.LidarVisualizer && ns.LidarVisualizer.initLidarVisualizer) ns.LidarVisualizer.initLidarVisualizer();
+        if (ns.Physics && ns.Physics.buildPhysicsBoundingBoxes) ns.Physics.buildPhysicsBoundingBoxes();
 
         // 5. 初始化任務起訖點停機坪
-        ns.MissionManager.applyMissionSeed();
+        if (ns.MissionManager && ns.MissionManager.applyMissionSeed) ns.MissionManager.applyMissionSeed();
 
         // 6. 解析當前戰術關卡任務 (URL 參數：?mission=m1_speedrun)
         const urlParams = new URLSearchParams(window.location.search);
@@ -71,18 +79,20 @@ window.ShilinDrone = window.ShilinDrone || {};
         }
 
         // 9. 設定使用者點擊互動
-        ns.Interaction.setupInteraction();
+        if (ns.Interaction && ns.Interaction.setupInteraction) {
+            ns.Interaction.setupInteraction();
+        }
 
         // 10. 載入預設程式碼與 AI 提示詞
         const codeEditor = document.getElementById('code-editor');
-        if (codeEditor) codeEditor.value = ns.DefaultCode.DEFAULT_CODE;
+        if (codeEditor && ns.DefaultCode) codeEditor.value = ns.DefaultCode.DEFAULT_CODE;
 
         const promptText = document.getElementById('ai-prompt-text');
-        if (promptText) promptText.value = ns.DefaultCode.AI_PROMPT_TEXT;
+        if (promptText && ns.DefaultCode) promptText.value = ns.DefaultCode.AI_PROMPT_TEXT;
 
         // 11. 更新頂部街廓建築統計標籤
         const statsBadge = document.getElementById('stats-badge');
-        if (statsBadge) {
+        if (statsBadge && ns.State && ns.State.stats) {
             statsBadge.textContent = `${ns.State.stats.totalBuildingCount.toLocaleString()} 棟多樣化建築 · ${ns.State.stats.totalRoadSegments} 條彎曲道路/水岸`;
         }
 

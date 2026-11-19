@@ -8,8 +8,8 @@ window.ShilinDrone = window.ShilinDrone || {};
 (function(ns) {
     'use strict';
 
-    const { seededRandom, randRange } = ns.Config;
-    const { createDiverseTaiwanBuilding } = ns.BuildingGenerator;
+    const { seededRandom, randRange } = ns.Config || {};
+    const { createDiverseTaiwanBuilding = () => {} } = ns.BuildingGenerator || {};
 
     // ------------------------------------------------------------------------
     // 道路、捷運軌道與河川核心幾何參考點 (用於嚴格安全退縮淨空運算)

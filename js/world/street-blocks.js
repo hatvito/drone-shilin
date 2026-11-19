@@ -6,8 +6,8 @@ window.ShilinDrone = window.ShilinDrone || {};
 (function(ns) {
     'use strict';
 
-    const { seededRandom, randRange } = ns.Config;
-    const { pickRealisticHeight, pickMaterialByHeight, createDiverseTaiwanBuilding } = ns.BuildingGenerator;
+    const { seededRandom, randRange } = ns.Config || {};
+    const { pickRealisticHeight = () => 12, pickMaterialByHeight = () => null, createDiverseTaiwanBuilding = () => {} } = ns.BuildingGenerator || {};
 
     function populateCurvedStreetBlock(topUVs, botUVs, opts = {}) {
         const topCurve = new THREE.CatmullRomCurve3(topUVs.map(p => new THREE.Vector3(p[0], 0, p[1])));

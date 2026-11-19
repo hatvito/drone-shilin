@@ -7,12 +7,12 @@ window.ShilinDrone = window.ShilinDrone || {};
 (function(ns) {
     'use strict';
 
-    const { toX, toZ } = ns.Config;
-    const { facadeMaterials } = ns.Materials;
-    const { createUVPolygonMesh, createUVSplineRibbon, registerInteractive } = ns.GeoHelpers;
-    const { createDiverseTaiwanBuilding } = ns.BuildingGenerator;
-    const { populateCurvedStreetBlock } = ns.StreetBlocks;
-    const { layerGroups, stats, dynamicObjects } = ns.State;
+    const { toX, toZ } = ns.Config || {};
+    const { facadeMaterials = {} } = ns.Materials || {};
+    const { createUVPolygonMesh = () => {}, createUVSplineRibbon = () => {}, registerInteractive = () => {} } = ns.GeoHelpers || {};
+    const { createDiverseTaiwanBuilding = () => {} } = ns.BuildingGenerator || {};
+    const { populateCurvedStreetBlock = () => {} } = ns.StreetBlocks || {};
+    const { layerGroups = {}, stats = {}, dynamicObjects = [] } = ns.State || {};
 
     function buildLandmarks() {
         const addLabel = (u, v, y, text, style) => {

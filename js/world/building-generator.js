@@ -8,10 +8,10 @@ window.ShilinDrone = window.ShilinDrone || {};
 (function(ns) {
     'use strict';
 
-    const { toX, toZ, seededRandom, randRange } = ns.Config;
-    const { facadeMaterials, roofMaterials, FACADE_KEYS_WALKUP, ROOF_TIN_KEYS } = ns.Materials;
-    const { registerInteractive } = ns.GeoHelpers;
-    const { layerGroups, stats, missionEntities, physicalObstacles } = ns.State;
+    const { toX, toZ, seededRandom, randRange } = ns.Config || {};
+    const { facadeMaterials = {}, roofMaterials = {}, FACADE_KEYS_WALKUP = [], ROOF_TIN_KEYS = [] } = ns.Materials || {};
+    const { registerInteractive = () => {} } = ns.GeoHelpers || {};
+    const { layerGroups = {}, stats = {}, missionEntities = {}, physicalObstacles = [] } = ns.State || {};
 
     // 收集所有屋頂鐵皮加蓋、電梯機房與水塔的矩陣轉換，用於合批渲染
     const rooftopBatches = {

@@ -245,12 +245,20 @@ window.ShilinDrone = window.ShilinDrone || {};
         const flyoutScrollbars = document.querySelectorAll('.blocklyFlyoutScrollbar');
         flyoutScrollbars.forEach(sb => {
             if (!isFlyoutVisible) {
-                sb.style.display = 'none';
-                sb.style.visibility = 'hidden';
+                sb.style.setProperty('display', 'none', 'important');
+                sb.style.setProperty('visibility', 'hidden', 'important');
                 sb.setAttribute('display', 'none');
+                sb.querySelectorAll('rect, g').forEach(el => {
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('visibility', 'hidden', 'important');
+                });
             } else {
-                sb.style.display = '';
-                sb.style.visibility = 'visible';
+                sb.style.removeProperty('display');
+                sb.style.removeProperty('visibility');
+                sb.querySelectorAll('rect, g').forEach(el => {
+                    el.style.removeProperty('display');
+                    el.style.removeProperty('visibility');
+                });
             }
         });
     }
