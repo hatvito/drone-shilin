@@ -18,15 +18,15 @@
 }
 
 /* Code Editor Specifics */
-#code-editor {
+#code-editor, #modal-code-editor {
     tab-size: 4;
     white-space: pre;
     font-variant-ligatures: normal;
 }
 
-#code-editor:focus {
+#code-editor:focus, #modal-code-editor:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.45);
 }
 
 /* Speed Switch Pills */

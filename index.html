@@ -130,10 +130,13 @@
         <!-- 學生代碼編輯區 -->
         <div class="glass-panel p-3 rounded-2xl shadow-2xl pointer-events-auto flex-1 flex flex-col min-h-[220px]">
             <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-200">避障控制器 (StudentController)</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-200">避障控制器</span>
+                    <button onclick="openCodeModal()" class="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 hover:bg-cyan-500/30 text-[10px] font-bold transition flex items-center gap-1" title="開啟全螢幕大視窗編輯代碼 (雙擊代碼框亦可展開)">
+                        <span>⛶ 放大編輯</span>
+                    </button>
                     <!-- 模擬倍速切換 -->
-                    <div class="flex items-center bg-slate-900 rounded-lg p-0.5 text-[10px] border border-slate-800">
+                    <div class="flex items-center bg-slate-900 rounded-lg p-0.5 text-[10px] border border-slate-800 ml-0.5">
                         <button id="btn-speed-1" onclick="setSimSpeed(1.0)" class="px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-bold transition">1x</button>
                         <button id="btn-speed-2" onclick="setSimSpeed(2.0)" class="px-1.5 py-0.5 rounded text-slate-400 font-bold transition">2x</button>
                         <button id="btn-speed-4" onclick="setSimSpeed(4.0)" class="px-1.5 py-0.5 rounded text-slate-400 font-bold transition">4x</button>
@@ -141,7 +144,12 @@
                 </div>
                 <button onclick="resetDefaultCode()" class="text-[10px] text-slate-400 hover:text-slate-200">還原預設</button>
             </div>
-            <textarea id="code-editor" spellcheck="false" class="flex-1 w-full p-2.5 rounded-xl bg-slate-950/90 text-emerald-300 code-font text-[11px] leading-relaxed border border-slate-700/80 focus:outline-none focus:border-cyan-400 resize-none"></textarea>
+            <div class="relative flex-1 flex flex-col">
+                <textarea id="code-editor" spellcheck="false" class="flex-1 w-full p-2.5 rounded-xl bg-slate-950/90 text-emerald-300 code-font text-[11px] leading-relaxed border border-slate-700/80 focus:outline-none focus:border-cyan-400 resize-none cursor-text" title="雙擊可展開全螢幕大視窗"></textarea>
+                <button onclick="openCodeModal()" class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 text-[10px] border border-slate-700/70 transition opacity-80 hover:opacity-100 flex items-center gap-1 shadow-md">
+                    <span>⛶ 展開</span>
+                </button>
+            </div>
             <div class="mt-2 flex items-center gap-2">
                 <button id="flight-toggle-btn" onclick="toggleFlightSimulation()" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-1.5">
                     <span>啟動自主避障試飛</span>
@@ -191,6 +199,84 @@
             </div>
         </div>
     </aside>
+
+    <!-- 避障控制器大視窗/全螢幕編輯彈窗 -->
+    <div id="code-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden pointer-events-auto">
+        <div class="glass-panel-glow w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-cyan-500/40">
+            <!-- 視窗標題列 -->
+            <div class="flex items-center justify-between px-5 py-3 border-b border-slate-700/60 bg-slate-900/70">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">💻</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base sm:text-lg font-black text-white">避障控制器演算法・大視窗編輯器</h2>
+                            <span id="modal-code-diff-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                                🟡 標準 25m
+                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                                StudentController
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 mt-0.5">完整閱覽與編寫 JavaScript 避障演算法 · 支援 Tab 鍵縮排與 Ctrl+Enter 快捷試飛</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAiPromptModal()" class="px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/40 hover:bg-purple-500/30 font-bold text-xs transition flex items-center gap-1">
+                        <span>✨ AI 提示詞</span>
+                    </button>
+                    <button onclick="resetDefaultCodeModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                        🔄 還原預設
+                    </button>
+                    <button onclick="closeCodeModal(true)" class="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 text-lg transition" title="關閉 (Esc)">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- 快速範本與字級工具列 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-2 border-b border-slate-800 bg-slate-950/80 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-slate-400 font-bold mr-1">💡 常用演算法範本：</span>
+                    <button onclick="insertCodeSnippet('lidar_dodge')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 text-slate-300 font-bold transition">
+                        + 16向光達環周排斥
+                    </button>
+                    <button onclick="insertCodeSnippet('altitude_hold')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 text-slate-300 font-bold transition">
+                        + 平滑巡航高度鎖定
+                    </button>
+                    <button onclick="insertCodeSnippet('emergency_brake')" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 text-slate-300 font-bold transition">
+                        + 前方危急減速
+                    </button>
+                </div>
+                <div class="flex items-center gap-1 text-[11px] text-slate-400">
+                    <span>字體大小:</span>
+                    <button onclick="changeEditorFontSize(-1)" class="w-6 h-6 rounded bg-slate-900 border border-slate-700 hover:bg-slate-800 font-bold text-center">-</button>
+                    <span id="modal-font-size-val" class="code-font font-bold text-cyan-300 px-1">13px</span>
+                    <button onclick="changeEditorFontSize(1)" class="w-6 h-6 rounded bg-slate-900 border border-slate-700 hover:bg-slate-800 font-bold text-center">+</button>
+                </div>
+            </div>
+
+            <!-- 大型程式碼文字編輯區 -->
+            <div class="flex-1 p-4 bg-slate-950/95 overflow-hidden flex flex-col">
+                <textarea id="modal-code-editor" spellcheck="false" class="flex-1 w-full p-4 rounded-2xl bg-slate-950 text-emerald-300 code-font text-[13px] leading-relaxed border border-slate-800 focus:outline-none focus:border-cyan-400 resize-none font-mono"></textarea>
+            </div>
+
+            <!-- 底部動作欄與狀態列 -->
+            <div class="flex items-center justify-between px-5 py-3 border-t border-slate-700/60 bg-slate-900/80">
+                <span id="modal-code-stats" class="text-xs text-slate-400 code-font">共 -- 行 · -- 字元 · 支援 Tab 縮排</span>
+                <div class="flex items-center gap-2.5">
+                    <button onclick="closeCodeModal(false)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                        取消放棄修改
+                    </button>
+                    <button onclick="closeCodeModal(true)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs transition">
+                        💾 儲存套用
+                    </button>
+                    <button onclick="applyAndFlyCodeModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 transition flex items-center gap-1.5">
+                        <span>🚀 立即編譯並試飛 (Ctrl + Enter)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- AI 提示詞彈窗 -->
     <div id="ai-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden pointer-events-auto">
