@@ -106,8 +106,12 @@ window.ShilinDrone = window.ShilinDrone || {};
         const dt = Math.min(clock.getDelta(), 0.05);
         const elapsed = clock.getElapsedTime();
 
-        // 飛行物理更新步進
-        ns.FlightEngine.stepFlight(dt);
+        // 飛行物理更新步進 (若處於黑盒子重播模式，則步進重播而非即時物理)
+        if (ns.MissionDebrief && ns.MissionDebrief.isReplaying && ns.MissionDebrief.isReplaying()) {
+            ns.MissionDebrief.stepReplay(dt);
+        } else {
+            ns.FlightEngine.stepFlight(dt);
+        }
 
         // 無人機螺旋槳自旋
         ns.DroneModel.updateDroneAnimation(dt, ns.State.simSettings.isSimulating);

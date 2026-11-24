@@ -24,6 +24,9 @@ window.ShilinDrone = window.ShilinDrone || {};
     }
 
     function startFlightSimulation() {
+        if (ns.MissionDebrief && ns.MissionDebrief.isReplaying && ns.MissionDebrief.isReplaying()) {
+            ns.MissionDebrief.exitReplayMode();
+        }
         if (flightState.status === 'CRASHED' || flightState.status === 'SUCCESS') {
             resetFlightState();
         }
@@ -61,7 +64,16 @@ window.ShilinDrone = window.ShilinDrone || {};
                 studentLegacyUpdateFunc = compiled.func;
             }
         } catch (e) {
-            alert('避障代碼編譯失敗：\n' + e.message);
+            if (ns.MissionDebrief && ns.MissionDebrief.showDebrief) {
+                ns.MissionDebrief.showDebrief({
+                    type: 'COMPILE_ERROR',
+                    reason: e.message,
+                    flightState: { ...flightState },
+                    activeMission: ns.State.activeMission
+                });
+            } else {
+                alert('避障代碼編譯失敗：\n' + e.message);
+            }
             return;
         }
 
@@ -174,7 +186,32 @@ window.ShilinDrone = window.ShilinDrone || {};
                 statusBadge.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
             }
 
-            alert(`⚠️ 無人機任務失敗！\n原因：動力電池電量耗盡 (0%)，迫降失事墜毀！\n請優化航線規劃、提高巡航速度或減輕感測器功耗負擔。`);
+            blackboxLogs.push({
+                t: parseFloat(flightState.flightTime.toFixed(2)),
+                x: parseFloat(flightState.pos.x.toFixed(2)),
+                y: parseFloat(flightState.pos.y.toFixed(2)),
+                z: parseFloat(flightState.pos.z.toFixed(2)),
+                dist: parseFloat(flightState.remainingDistance.toFixed(2)),
+                vx: parseFloat(flightState.vel.x.toFixed(2)),
+                vy: parseFloat(flightState.vel.y.toFixed(2)),
+                vz: parseFloat(flightState.vel.z.toFixed(2)),
+                speed: parseFloat(flightState.vel.length().toFixed(2)),
+                yaw: parseFloat(flightState.yaw.toFixed(2)),
+                battery: 0,
+                isCrashPoint: true,
+                crashReason: '動力電池電量耗盡迫降'
+            });
+
+            if (ns.MissionDebrief && ns.MissionDebrief.showDebrief) {
+                ns.MissionDebrief.showDebrief({
+                    type: 'BATTERY',
+                    reason: '動力電池電量耗盡 (0%)，迫降失事墜毀',
+                    flightState: { ...flightState },
+                    activeMission: activeMission
+                });
+            } else {
+                alert(`⚠️ 無人機任務失敗！\n原因：動力電池電量耗盡 (0%)，迫降失事墜毀！\n請優化航線規劃、提高巡航速度或減輕感測器功耗負擔。`);
+            }
             return;
         }
 
@@ -211,7 +248,16 @@ window.ShilinDrone = window.ShilinDrone || {};
             simSettings.isSimulating = false;
             flightState.status = 'CRASHED';
             pauseFlightSimulation();
-            alert('演算法運行異常：\n' + e.message);
+            if (ns.MissionDebrief && ns.MissionDebrief.showDebrief) {
+                ns.MissionDebrief.showDebrief({
+                    type: 'RUNTIME_ERROR',
+                    reason: e.message,
+                    flightState: { ...flightState },
+                    activeMission: activeMission
+                });
+            } else {
+                alert('演算法運行異常：\n' + e.message);
+            }
             return;
         }
 
@@ -245,7 +291,34 @@ window.ShilinDrone = window.ShilinDrone || {};
                 statusBadge.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
             }
 
-            alert(`⚠️ 無人機任務失敗！\n原因：${ccd.reason}\n失事點剩餘直線距離：${flightState.remainingDistance.toFixed(2)} m\n任務達成率：${flightState.progress.toFixed(1)}%`);
+            // 記錄精確碰撞點至黑盒子日誌
+            blackboxLogs.push({
+                t: parseFloat(flightState.flightTime.toFixed(2)),
+                x: parseFloat(nextPos.x.toFixed(2)),
+                y: parseFloat(nextPos.y.toFixed(2)),
+                z: parseFloat(nextPos.z.toFixed(2)),
+                dist: parseFloat(flightState.remainingDistance.toFixed(2)),
+                vx: parseFloat(flightState.vel.x.toFixed(2)),
+                vy: parseFloat(flightState.vel.y.toFixed(2)),
+                vz: parseFloat(flightState.vel.z.toFixed(2)),
+                speed: parseFloat(flightState.vel.length().toFixed(2)),
+                yaw: parseFloat(flightState.yaw.toFixed(2)),
+                battery: parseFloat(flightState.battery.toFixed(1)),
+                isCrashPoint: true,
+                crashReason: ccd.reason
+            });
+
+            if (ns.MissionDebrief && ns.MissionDebrief.showDebrief) {
+                ns.MissionDebrief.showDebrief({
+                    type: 'COLLISION',
+                    reason: ccd.reason,
+                    ccd: ccd,
+                    flightState: { ...flightState },
+                    activeMission: activeMission
+                });
+            } else {
+                alert(`⚠️ 無人機任務失敗！\n原因：${ccd.reason}\n失事點剩餘直線距離：${flightState.remainingDistance.toFixed(2)} m\n任務達成率：${flightState.progress.toFixed(1)}%`);
+            }
             return;
         }
 
@@ -278,7 +351,13 @@ window.ShilinDrone = window.ShilinDrone || {};
                     x: parseFloat(flightState.pos.x.toFixed(2)),
                     y: parseFloat(flightState.pos.y.toFixed(2)),
                     z: parseFloat(flightState.pos.z.toFixed(2)),
-                    dist: parseFloat(dist.toFixed(2))
+                    dist: parseFloat(dist.toFixed(2)),
+                    vx: parseFloat(flightState.vel.x.toFixed(2)),
+                    vy: parseFloat(flightState.vel.y.toFixed(2)),
+                    vz: parseFloat(flightState.vel.z.toFixed(2)),
+                    speed: parseFloat(flightState.vel.length().toFixed(2)),
+                    yaw: parseFloat(flightState.yaw.toFixed(2)),
+                    battery: parseFloat(flightState.battery.toFixed(1))
                 });
             }
 
@@ -297,7 +376,31 @@ window.ShilinDrone = window.ShilinDrone || {};
                             statusBadge.textContent = '著陸翻覆';
                             statusBadge.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40';
                         }
-                        alert(`⚠️ 著陸翻覆失事！\n原因：目標停機坪處於 ${slope}° 傾斜鐵皮斜頂！\n直接關閉馬達導致無人機失衡側翻墜樓！\n提示：請利用下視 ToF 感測器判斷坡度並修正著陸位置。`);
+
+                        blackboxLogs.push({
+                            t: parseFloat(flightState.flightTime.toFixed(2)),
+                            x: parseFloat(flightState.pos.x.toFixed(2)),
+                            y: parseFloat(flightState.pos.y.toFixed(2)),
+                            z: parseFloat(flightState.pos.z.toFixed(2)),
+                            dist: parseFloat(dist.toFixed(2)),
+                            vx: 0, vy: 0, vz: 0, speed: 0,
+                            yaw: parseFloat(flightState.yaw.toFixed(2)),
+                            battery: parseFloat(flightState.battery.toFixed(1)),
+                            isCrashPoint: true,
+                            crashReason: `鐵皮斜頂 (${slope.toFixed(1)}°) 著陸翻覆`
+                        });
+
+                        if (ns.MissionDebrief && ns.MissionDebrief.showDebrief) {
+                            ns.MissionDebrief.showDebrief({
+                                type: 'SLOPE',
+                                slope: slope,
+                                reason: `目標停機坪處於 ${slope.toFixed(1)}° 傾斜鐵皮斜頂，直接關閉馬達導致無人機失衡側翻墜樓`,
+                                flightState: { ...flightState },
+                                activeMission: activeMission
+                            });
+                        } else {
+                            alert(`⚠️ 著陸翻覆失事！\n原因：目標停機坪處於 ${slope}° 傾斜鐵皮斜頂！\n直接關閉馬達導致無人機失衡側翻墜樓！\n提示：請利用下視 ToF 感測器判斷坡度並修正著陸位置。`);
+                        }
                         return;
                     }
                 }

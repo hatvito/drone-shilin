@@ -56,10 +56,11 @@ window.ShilinDrone = window.ShilinDrone || {};
         // 3. 載入預設初始避障積木範本
         loadDefaultWorkspace();
 
-        // 4. 監聽積木變更，即時編譯為 JavaScript
+        // 4. 監聽積木變更，即時編譯為 JavaScript 並自動本機存檔
         workspace.addChangeListener((event) => {
             if (event.isUiEvent) return;
             compileBlocksToCode();
+            triggerWorkspaceAutosave();
         });
 
         // 首次即時編譯
@@ -147,9 +148,104 @@ window.ShilinDrone = window.ShilinDrone || {};
         }
     }
 
-    function loadDefaultWorkspace() {
+    const AUTOSAVE_KEY = 'shilindrone_blockly_workspace_xml';
+    let autosaveTimer = null;
+
+    function triggerWorkspaceAutosave() {
+        if (autosaveTimer) clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+            if (!workspace) return;
+            try {
+                const dom = Blockly.Xml.workspaceToDom(workspace);
+                const xmlText = Blockly.Xml.domToText(dom);
+                localStorage.setItem(AUTOSAVE_KEY, xmlText);
+            } catch (e) {
+                console.warn('[Blockly] 自動存檔異常：', e);
+            }
+        }, 400);
+    }
+
+    // 匯出當前積木專案檔 (.xml)
+    function exportWorkspaceXml() {
         if (!workspace) return;
         try {
+            const dom = Blockly.Xml.workspaceToDom(workspace);
+            const xmlText = Blockly.Xml.domToPrettyText(dom);
+            const blob = new Blob([xmlText], { type: 'application/xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            const seed = (ns.Config && ns.Config.MAP_SEED) || 1337;
+            a.href = url;
+            a.download = `士林無人機避障_積木專案_${seed}_${dateStr}.xml`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (window.showToast) {
+                window.showToast('💾 積木專案檔已成功匯出下載！', 'success');
+            }
+        } catch (e) {
+            console.error('[Blockly] 匯出專案失敗：', e);
+            alert('匯出專案檔失敗：' + e.message);
+        }
+    }
+
+    // 觸發匯入檔案對話框
+    function triggerImportXml() {
+        const input = document.getElementById('blockly-xml-file-input');
+        if (input) {
+            input.value = '';
+            input.click();
+        }
+    }
+
+    // 處理使用者選取之 XML 檔案
+    function handleXmlFileSelect(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file || !workspace) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                if (!text || !text.includes('<xml') || !text.includes('<block')) {
+                    throw new Error('檔案內容並非合法的 Blockly XML 積木專案！');
+                }
+                workspace.clear();
+                const dom = Blockly.utils.xml.textToDom(text);
+                Blockly.Xml.domToWorkspace(dom, workspace);
+                compileBlocksToCode();
+                triggerWorkspaceAutosave();
+                if (window.showToast) {
+                    window.showToast(`📂 成功載入專案檔【${file.name}】！`, 'success');
+                }
+            } catch (err) {
+                console.error('[Blockly] 匯入專案失敗：', err);
+                alert('載入積木專案失敗：\n' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function loadDefaultWorkspace(forceDefault = false) {
+        if (!workspace) return;
+        try {
+            // 若非強制重置，且本機快取中有先前編輯的積木，優先還原
+            if (!forceDefault) {
+                const savedXml = localStorage.getItem(AUTOSAVE_KEY);
+                if (savedXml && savedXml.includes('<xml') && savedXml.includes('<block')) {
+                    workspace.clear();
+                    const dom = Blockly.utils.xml.textToDom(savedXml);
+                    Blockly.Xml.domToWorkspace(dom, workspace);
+                    compileBlocksToCode();
+                    console.log('[Blockly] 已從本機快取成功還原上次編輯之積木');
+                    return;
+                }
+            }
+
             workspace.clear();
             const xml = Blockly.utils.xml.textToDom(ns.BlocklyToolbox.DEFAULT_WORKSPACE_XML);
             Blockly.Xml.domToWorkspace(xml, workspace);
@@ -160,8 +256,14 @@ window.ShilinDrone = window.ShilinDrone || {};
     }
 
     function resetDefaultBlocks() {
-        if (confirm('確定要還原為預設避障積木範本嗎？現有積木排列將被重置。')) {
-            loadDefaultWorkspace();
+        if (confirm('確定要還原為預設避障積木範本嗎？現有積木排列與本機快取將被重置。')) {
+            try {
+                localStorage.removeItem(AUTOSAVE_KEY);
+            } catch (e) {}
+            loadDefaultWorkspace(true);
+            if (window.showToast) {
+                window.showToast('🔄 已重置為初始避障範本', 'info');
+            }
         }
     }
 
@@ -315,6 +417,9 @@ window.ShilinDrone = window.ShilinDrone || {};
         compileBlocksToCode,
         loadDefaultWorkspace,
         resetDefaultBlocks,
+        exportWorkspaceXml,
+        triggerImportXml,
+        handleXmlFileSelect,
         openCodePreviewModal,
         closeCodePreviewModal,
         copyGeneratedCode,
@@ -329,6 +434,9 @@ window.ShilinDrone = window.ShilinDrone || {};
     window.closeCodePreviewModal = closeCodePreviewModal;
     window.copyGeneratedCode = copyGeneratedCode;
     window.resetDefaultBlocks = resetDefaultBlocks;
+    window.exportWorkspaceXml = exportWorkspaceXml;
+    window.triggerImportXml = triggerImportXml;
+    window.handleXmlFileSelect = handleXmlFileSelect;
     window.toggleFullscreenWorkspace = toggleFullscreenWorkspace;
     window.closeFlyout = closeFlyout;
 })(window.ShilinDrone);
